@@ -1,0 +1,2 @@
+-e https://github.com/okfn/messytables#egg=messytables
+-e https://github.com/okfn/sqlaload#egg=sqlaload

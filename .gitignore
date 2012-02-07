@@ -1,1 +1,3 @@
 *.pyc
+nosetests.xml
+sources/*

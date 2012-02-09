@@ -46,8 +46,7 @@ def map_column(engine, columns_table, row):
     return None
 
 def map_columns():
-    #engine = sl.connect("sqlite:///uk25k.db")
-    engine = sl.connect("postgresql://localhost/ukspending")
+    engine = sl.connect("sqlite:///uk25k.db")
     columns_table = sl.get_table(engine, 'columns')
     for row in sl.all(engine, columns_table):
         if row.get('valid'):

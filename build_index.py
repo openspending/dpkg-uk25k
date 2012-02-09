@@ -2,6 +2,7 @@
 import sqlaload as sl
 
 from ckanclient import CkanClient
+from common import *
 
 
 def fetch_package(client, package_name, engine, table):
@@ -18,9 +19,13 @@ def fetch_package(client, package_name, engine, table):
             'description': res['description']
             }, ['resource_id'])
 
+def connect():
+    engine = db_connect()
+    src_table = sl.get_table(engine, 'source')
+    return engine,src_table
+
 def test_build_index():
-    engine = sl.connect("postgresql://localhost/ukspending")
-    table = sl.get_table(engine, 'source')
+    engine, table = connect()
     client = CkanClient(base_location='http://catalogue.data.gov.uk/api')
     res = client.package_search("tags:spend-transactions",
             search_options={'limit': 5})

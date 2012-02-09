@@ -1,44 +1,59 @@
 import urlparse
 import urllib
-import requests
+import urllib2
 import sqlaload as sl
+import sys
 from datetime import datetime
+import traceback
 
-from common import source_path
+from common import *
+from functools import partial
+
+binary_formats = ['.xls', 'xls', 'xlx', 'xlsx', 'zip', 'pdf', 'Zipped CSV', 'Excel']
 
 def fix_url(url):
+    # The correct character set for URLs is "broken". This is probably close enough.
+    if isinstance(url, unicode):
+        url = url.encode('utf-8', 'ignore')
+    scheme, netloc, path, qs, anchor = urlparse.urlsplit(url)
+    path = urllib.quote(path, '/%')
+    url = urlparse.urlunsplit((scheme, netloc, path, qs, anchor))
+
     url = url.replace(" ", "%20")
     if url.startswith('"'):
         print "FOO"
         url = url[1:]
     _url = url.lower()
-    if not _url.startswith('http://') or _url.startswith('https://'):
+    if not (_url.startswith('http://') or _url.startswith('https://')):
         url = 'http://' + url
     return url
 
-def retrieve(row, engine):
+def retrieve(row, engine, force):
     ret_table = sl.get_table(engine, 'retrieval_log')
     #print row.get('package_name'), row['url'].encode('utf-8')
     try:
         import os
-        if os.path.exists(source_path(row)):
+        if not force and os.path.exists(source_path(row)):
             return
-        res = requests.get(fix_url(row['url']))
+        url = fix_url(row['url'])
+        print "Fetching %s" % url
+        res = urllib2.urlopen(url)
+
         fh = open(source_path(row), 'wb')
-        fh.write(res.raw.read())
-        fh.close()
-        #url = urlparse.urlparse(row['url'])
-        #url = [urllib.quote(p) if i!=1 else p for i, p in enumerate(url)]
-        #url = urlparse.urlunparse(url)
-        #res = urllib.urlretrieve(url, source_path(row))
+        fh.write(res.read())
+
         sl.add_row(engine, ret_table, {
             'resource_id': row['resource_id'],
-            'status': res.status_code,
+            'status': '200',
             'message': "",
+            'content-type': res.headers.get('content-type', ''),
             'timestamp': datetime.now()
             })
     except Exception, ioe:
-        status = ioe.status if hasattr(ioe, 'status') else ""
+        print traceback.format_exc()
+        status = 0
+        if hasattr(ioe, 'code'):
+            status = ioe.code
         sl.add_row(engine, ret_table, {
             'resource_id': row['resource_id'],
             'status': status,
@@ -47,14 +62,27 @@ def retrieve(row, engine):
             })
         assert False, unicode(ioe).encode('utf-8')
 
+def connect():
+    engine = db_connect()
+    src_table = sl.get_table(engine, 'source')
+    return engine,src_table
+
+def describe(row):
+    return 'retrieve: %(package_name)s/%(resource_id)s (%(url)s)' % row
 
 def test_retrieve_all():
-    engine = sl.connect("sqlite:///uk25k.db")
-    src_table = sl.get_table(engine, 'source')
+    engine,src_table = connect()
     for row in sl.all(engine, src_table):
-        retrieve.description = 'retrieve: %(package_name)s/%(resource_id)s (%(url)s)' % row
-        yield retrieve, row, engine
+        f = partial(retrieve, row, engine, False)
+        f.description = describe(row)
+        yield f,
 
-
-#if __name__ == '__main__':
-#    retrieve_all(engine)
+if __name__ == '__main__':
+    engine,src_table = connect()
+    for id in sys.argv[1:]:
+        row = sl.find_one(engine, src_table, resource_id=id)
+        if row is None:
+            print "Could not find row %s" % id
+        else:
+            print describe(row)
+            retrieve(row, engine, True)

@@ -35,6 +35,7 @@ def convert_(value):
     return value
 
 html_re = re.compile(r'<!doctype|<html', re.I)
+COMPDOC_SIGNATURE = "\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1"
 
 def extract_table(engine, table, row, resource_id, force):
     # For now, interpret lack of data as not-failure at this stage, on
@@ -44,11 +45,6 @@ def extract_table(engine, table, row, resource_id, force):
         return
     #assert os.path.exists(source_path(row)), "No source file exists."
     
-    fh = open(source_path(row), 'rb')
-    source_data = fh.read()
-
-    assert html_re.search(source_data[0:1024]) is None, "Looks like HTML"
-
     connection = engine.connect()
     columns_table = sl.get_table(connection, 'columns')
     extracted_table = sl.get_table(connection, 'extracted')
@@ -56,17 +52,25 @@ def extract_table(engine, table, row, resource_id, force):
     # Skip over tables we have already extracted
     if not force and sl.find_one(engine, extracted_table, resource_id=resource_id) is not None:
         return
-    
+
+    fh = open(source_path(row), 'rb')
+    source_data = fh.read()
+
+    assert len(source_data) > 0, "Empty file"
+    assert html_re.search(source_data[0:1024]) is None, "Looks like HTML"
+    assert not source_data.startswith('%PDF'), "Looks like PDF"
+
     trans = connection.begin()
     start = time.time()
     try:
-        try:
+        if source_data.startswith(COMPDOC_SIGNATURE):
             fh.seek(0)
             table_set = XLSTableSet.from_fileobj(fh)
-        except Exception:
-            log.debug('Does not seem to be XLS', exc_info=True)
-            
+        elif source_data.startswith('PK'):
+            table_set = XLSXTableSet(source_path(row))
+        else:
             cd = chardet.detect(source_data)
+            fh.close()
             fh = codecs.open(source_path(row), 'r', cd['encoding'])
 
             table_set = CSVTableSet.from_fileobj(fh)
@@ -136,7 +140,7 @@ def describe(row):
 
 def test_extract_all():
     engine, table = connect()
-    for row in sl.find(engine, table, _limit=500, _offset=200):
+    for row in sl.find(engine, table):
         extract = partial(extract_table, engine, table, row)
         extract.description = describe(row)
         yield extract, row['resource_id'], False

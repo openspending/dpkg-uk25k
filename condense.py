@@ -2,39 +2,47 @@ from functools import partial
 
 import sqlaload as sl
 
-def condense(engine, raw_table, raw_row):
-    spending_table = sl.get_table(engine, 'spending')
-    columns_table = sl.get_table(engine, 'columns')
-    mappings = dict([(c.get('original'), c.get('column')) for c in \
-                     sl.all(engine, columns_table) if c.get('valid')])
-    for row in sl.find(engine, raw_table,
-        _resource_id=raw_row.get('_resource_id'),
-        _table_id=raw_row.get('_table_id')):
-        
-        spending_row = {'resource_id': row['_resource_id'],
-                        'table_id': row['_table_id'],
-                        'row_id': row['_row_id'],}
-        for key, value in row.items():
-            if key not in mappings:
-                continue
-            if not value or not len(value.strip()):
-                continue
-            if mappings[key] in spending_row:
-                continue
-            spending_row[mappings[key]] = value
-        #print spending_row
-        sl.upsert(engine, spending_table, spending_row, 
-                  ['resource_id', 'table_id', 'row_id'])
+from common import *
+
+def condense(engine, raw_table_name, resource_id, table_id):
+    connection = engine.connect()
+    trans = connection.begin()
+
+    try:
+        raw_table = sl.get_table(connection, raw_table_name)
+        spending_table = sl.get_table(connection, 'spending')
+        columns_table = sl.get_table(connection, 'columns')
+        mappings = dict([(c.get('original'), c.get('column')) for c in \
+                         sl.all(connection, columns_table) if c.get('valid')])
+        for row in sl.all(connection, raw_table):
+            spending_row = {'resource_id': resource_id,
+                            'table_id': table_id,
+                            'row_id': row['id'],}
+            for key, value in row.items():
+                if key not in mappings:
+                    continue
+                if not value or not len(value.strip()):
+                    continue
+                if mappings[key] in spending_row:
+                    continue
+                spending_row[mappings[key]] = value
+            #print spending_row
+            sl.upsert(connection, spending_table, spending_row, 
+                      ['resource_id', 'table_id', 'row_id'])
+        trans.commit()
+    finally:
+        connection.close()
+
+def describe(raw_table_name):
+    return 'condense: %s' % raw_table_name
 
 def test_condense_all():
-    engine = sl.connect("sqlite:///uk25k.db")
-    table = sl.get_table(engine, 'raw')
-    for row in sl.distinct(engine, table, '_resource_id', '_table_id'):
-        condense_ = partial(condense, engine, table, row)
-        condense_.description = \
-            'condense: %(_resource_id)s/%(_table_id)s' % row
-        yield condense_
-
-
-
-
+    engine = db_connect()
+    table = sl.get_table(engine, 'extracted')
+    for row in sl.all(engine, table):
+        for table_id in xrange(0, row['max_table_id'] + 1):
+            raw_table_name = 'raw_%s_table%s' % (row['resource_id'], table_id)
+            if engine.has_table(raw_table_name):
+                condense_ = partial(condense, engine, raw_table_name, row['resource_id'], table_id)
+                condense_.description = describe(raw_table_name)
+                yield condense_

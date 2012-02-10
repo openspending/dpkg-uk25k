@@ -19,6 +19,7 @@ log = logging.getLogger(__name__)
 
 def keyify(key):
     # None of these characters can be used in column names, due to sqlalchemy bugs
+    key = key.replace('\r', '')
     key = key.replace('\n', ' ')
     key = key.replace('(', '[')
     key = key.replace(')', ']')

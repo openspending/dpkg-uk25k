@@ -5,4 +5,3 @@ nose
 lxml
 psycopg2
 python-Levenshtein
-

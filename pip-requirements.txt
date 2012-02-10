@@ -1,2 +1,8 @@
 -e https://github.com/okfn/messytables#egg=messytables
 -e https://github.com/okfn/sqlaload#egg=sqlaload
+-e https://github.com/pudo/recon#egg=recon
+nose
+lxml
+psycopg2
+python-Levenshtein
+

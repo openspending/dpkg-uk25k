@@ -33,9 +33,10 @@ called directly, not through nosetests.
 Open Issues
 -----------
 
-Parsing problems: 
+?
 
-* NULL in lines in CSV
-* CSV with semicolon
-* Zipfiles
+Punted
+------
 
+* PDFs
+* Zip files containing a bunch of CSVs

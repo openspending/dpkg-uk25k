@@ -119,12 +119,11 @@ def format(engine, resource_id, table_id, force):
 
 def connect():
     engine = db_connect()
-    table = sl.get_table(engine, 'spending')
+    table = sl.get_table(engine, 'condensed')
     return engine,table
 
 def test_format_all():
     engine,table = connect()
-    table = sl.get_table(engine, 'condensed')
     for row in sl.all(engine, table):
         format_ = partial(format, engine, row['resource_id'], row['table_id'], False)
         format_.description = \

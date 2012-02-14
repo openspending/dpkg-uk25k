@@ -60,7 +60,7 @@ def lookup_supplier_name(name):
     try:
         query = {'query': name, 'limit': 1}
         url = "http://opencorporates.com/reconcile?%s" % urllib.urlencode({'query': json.dumps(query)})
-        with closing(urllib2.urlopen(url)) as f:
+        with closing(urllib2.urlopen(url), None, 30) as f:
             data = json.loads(f.read())
 
         if len(data['result']) > 0:
@@ -78,7 +78,9 @@ if __name__ == '__main__':
     engine, table = connect()
     supplier_table = sl.get_table(engine, 'suppliers')
 
-    pool = multiprocessing.Pool(1)
+    pool = multiprocessing.Pool(40)
+
+    fails = 0
 
     for r in pool.imap_unordered(lookup_supplier_name, supplier_names(engine, table)):
         if r is not None:
@@ -89,3 +91,7 @@ if __name__ == '__main__':
                                                },
                       ['original'])
             print "# %d rows and %d tables visited" % (rows_count, tables_count)
+        else:
+            fails = fails + 1
+            if fails % 100 == 0:
+                print "# %d requests failed" % fails

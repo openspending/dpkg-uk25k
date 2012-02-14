@@ -3,26 +3,20 @@ import sys
 import sqlaload as sl
 import Levenshtein
 import re
+import json
+from tempfile import NamedTemporaryFile
 
 from common import *
 
 PREDEFINED = [u'SupplierName', u'DepartmentFamily', u'Entity', u'Amount',
-    u'ExpenseType', u'ExpenseArea', u'VATNumber', u'Date']
+    u'ExpenseType', u'ExpenseArea', u'VATNumber', u'Date', u'TransactionNumber']
 
-def clean_str(text):
-    text = text or u""
-    return text.replace(' ', '').lower().strip()
+aliases = {'VATNumber': ['vatregistrationnumber'],
+           'TransactionNumber': ['transno'],
+           }
 
-def distance(text, candidate):
-    return Levenshtein.distance(
-            clean_str(text),
-            clean_str(candidate)
-            )
-
-def normalised(c):
-    return c.lower().replace(' ', '').replace('.', '')
-
-column_map = {}
+for k in PREDEFINED:
+    aliases.setdefault(k, []).append(normalise_header(k))
 
 def candidates(engine, columns_table, text):
     try:
@@ -34,82 +28,137 @@ def candidates(engine, columns_table, text):
     columns = [(c, distance(text, c), normalised(c)) for c in columns]
     return sorted(columns, key=lambda (a,b,c): b)
 
-def map_column(engine, columns_table, row):
-    original = row['original']
+def alias_distance(from_col, to_col):
+    distances = map(lambda x: Levenshtein.distance(from_col, unicode(x)), aliases[to_col])
+    return min(distances)
 
-    # Filter out some rubbish
-    if len(original) > 100:
-        raise ValueError()
+def assign_defaults(cols):
+    mapping = {}
+    left_over = set(PREDEFINED)
+    unmapped = set(cols)
 
-    if re.match(r'^[\d,.]*$', original):
-        raise ValueError()
+    distances = {}
+
+    for to_col in list(left_over):
+        to_norm = normalise_header(to_col)
+        for from_col in list(unmapped): 
+            if to_norm == from_col:
+                mapping[from_col] = to_col
+                left_over.remove(to_col)
+                unmapped.remove(from_col)
+            else:
+                distances.setdefault(from_col, {})[to_col] = alias_distance(from_col, to_col)
+
+    while len(left_over):
+        distance_list = []
+        for to_col in left_over:
+            for from_col in unmapped:
+                distance_list.append( (distances[from_col][to_col], from_col, to_col) )
+
+        d, f, t = min(distance_list, key=lambda x: x[0])
+        if d > 5:
+            break
+
+        mapping[f] = t
+        left_over.remove(t)
+        unmapped.remove(f)
     
-    if re.match(r'^\d+/\d+/\d+$', original):
-        raise ValueError()
+    return mapping, list(left_over)
 
-    choices = candidates(engine, columns_table, original)
-    norm_original = normalised(original)
+def prompt_for(cols, mapping, left_over):
+    print
+    print "Matching: %s" % ', '.join(cols)
+    print "Mapping:"
+    for col in cols:
+        print "  %s: %s" % (col, mapping.get(col, ''))
+    print "No mapping for: %s" % ', '.join(sorted(left_over))
 
-    # Reuse duplicates up to normalisation
-    if column_map.has_key(norm_original):
-        if column_map[norm_original]['valid']:
-            return column_map[norm_original]['column']
-        else:
+    sys.stdout.write("\n[A]ccept, [E]dit, mark as [B]roken, [S]kip, or [Q]uit? ")
+    line = ''
+    while line not in ['a', 'e', 'b', 's', 'q']:
+        line = sys.stdin.readline().strip().lower()
+    return line
+
+def edit_mapping(cols, mapping, left_over):
+    editor = os.getenv('EDITOR', None)
+    if editor is None:
+        print "Please set $EDITOR first"
+        return mapping, left_over
+
+    with NamedTemporaryFile() as temp:
+        print >>temp, "# Lines beginning with # are ignored, as are blank lines"
+        print >>temp, "# Other lines should be of the form 'normalisedinputname: StandardName'"
+        print >>temp, ''
+
+        for col in cols:
+            print >>temp, '%s: %s' % (col, mapping.get(col, ''))
+
+        print >>temp, ''
+        print >>temp, '# Unassigned standard names:'
+        for col in sorted(left_over):
+            print >>temp, '# %s' % col
+
+        temp.flush()
+        x = os.spawnlp(os.P_WAIT,editor,editor,temp.name)
+        if x != 0:
+            print "Error %d from editor!" % x
+
+        temp.seek(0)
+        mapping = {}
+        left_over = set(PREDEFINED)
+        for line in temp:
+            line = line.strip()
+            if line.startswith('#') or len(line) == 0:
+                continue
+            from_name, to_name = line.split(':')
+            from_name = from_name.strip()
+            to_name = to_name.strip()
+            mapping[from_name] = to_name
+            left_over.discard(to_name)
+        return mapping, list(left_over)
+
+def map_column(engine, columns_table, row):
+    normalised = row['normalised']
+    cols = normalised.split(',')
+
+    mapping,left_over = assign_defaults(cols)
+
+    while True:
+        line = prompt_for(cols, mapping, left_over)
+        if line == 'a':
+            return mapping
+        elif line == 'e':
+            mapping,left_over = edit_mapping(cols, mapping, left_over)
+        elif line == 's':
+            return None
+        elif line == 'b':
             raise ValueError()
-
-    # If we have an exact match up to normalisation, then go with it
-    for column, _, n in choices:
-        if n == norm_original:
-            return column
-
-    print "\nMatching: ", row['original']
-    print "Context: ", row['columns']
-    print "Common Values: ", row['examples']
-    for i, (column, distance, _) in enumerate(choices):
-        print " [%s]: %s (%s)" % (i, column, distance)
-    sys.stdout.write("\nPress 'x' for invalid, number for choice, or enter new.\n> ")
-    line = sys.stdin.readline().strip()
-    if not len(line):
-        line = '0'
-    if line == 'x':
-        raise ValueError()
-    try:
-        index = int(line)
-        return choices[index][0]
-    except:
-        return line
-    return None
+        elif line == 'q':
+            sys.exit(0)
 
 def connect():
     engine = db_connect()
-    columns_table = sl.get_table(engine, 'columns')
+    columns_table = sl.get_table(engine, 'column_sets')
     return engine,columns_table
 
 def map_columns():
     engine, columns_table = connect()
     for row in sl.all(engine, columns_table):
-        if row.get('column') is not None or row.get('valid') is not None:
-            column_map[normalised(row['original'])] = {'column': row.get('column'), 'valid': row.get('valid')}
-    for row in sl.all(engine, columns_table):
         if row.get('valid'):
             continue
         try:
-            column = map_column(engine, columns_table, row)
-            if column is not None:
-                column_map[normalised(row['original'])] = {'column': column, 'valid': True}
+            columns = map_column(engine, columns_table, row)
+            if columns is not None:
                 sl.upsert(engine, columns_table, 
-                          {'original': row['original'],
-                           #'resource_id': row['resource_id'],
+                          {'normalised': row['normalised'],
                            'valid': True,
-                           'column': column}, 
-                          ['original'])
+                           'column_map': json.dumps(columns)},
+                          ['normalised'])
         except ValueError:
-            column_map[normalised(row['original'])] = {'column': None, 'valid': False}
             sl.upsert(engine, columns_table, 
-                      {'original': row['original'],
-                       #'resource_id': row['resource_id'],
+                      {'normalised': row['normalised'],
                        'valid': False}, 
-                      ['original'])
+                      ['normalised'])
 
 if __name__ == '__main__':
     map_columns()

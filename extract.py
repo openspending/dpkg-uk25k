@@ -47,7 +47,7 @@ def extract_table(engine, table, row, resource_id, force):
     #assert os.path.exists(source_path(row)), "No source file exists."
     
     connection = engine.connect()
-    columns_table = sl.get_table(connection, 'columns')
+    column_sets_table = sl.get_table(connection, 'column_sets')
     extracted_table = sl.get_table(connection, 'extracted')
 
     # Skip over tables we have already extracted
@@ -97,25 +97,18 @@ def extract_table(engine, table, row, resource_id, force):
             sl.drop_table(connection, raw_table_name)
             raw_table = sl.get_table(connection, raw_table_name)
 
-            for row_id, row_ in enumerate(row_set):
+            found_rows = False
+            for row_ in row_set:
                 cells = dict([(keyify(c.column), convert_(c.value)) for c in row_ if \
                     len(c.column.strip())])
                 for cell, value in cells.items():
                     values[cell][value] += 1
                 sl.add_row(connection, raw_table, cells)
-            
-            for column in headers:
-                if not len(column.strip()):
-                    continue
-                examples = sorted(values.get(column, {}).items(), 
-                        key=lambda (a,b): b, reverse=True)[:7]
-                examples = [a for (a, b) in examples]
-                sl.upsert(connection, columns_table, {
-                        'original': column,
-                        #'resource_id': row['resource_id'],
-                        'examples': unicode(examples),
-                        'columns': unicode(headers)},
-                    ['original']) #, 'resource_id'])
+                found_rows = True
+
+            # Don't bother recording columns data for empty tables
+            if found_rows:
+                sl.upsert(connection, column_sets_table, {'normalised': ','.join(normalise_header_list(headers))}, ['normalised'])
 
         sl.upsert(connection, extracted_table, {'resource_id': resource_id,
                                                 'max_table_id': table_id,

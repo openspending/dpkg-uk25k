@@ -1,7 +1,6 @@
--e https://github.com/okfn/messytables#egg=messytables
--e https://github.com/okfn/sqlaload#egg=sqlaload
--e https://github.com/pudo/recon#egg=recon
+-e git+https://github.com/okfn/messytables#egg=messytables
+-e git+https://github.com/okfn/sqlaload#egg=sqlaload
 nose
-lxml
 psycopg2
 python-Levenshtein
+ckanclient

@@ -4,30 +4,28 @@ import sqlaload as sl
 import Levenshtein
 import re
 import json
+import traceback
 from tempfile import NamedTemporaryFile
 
 from common import *
+from sqlalchemy import select
 
 PREDEFINED = [u'SupplierName', u'DepartmentFamily', u'Entity', u'Amount',
     u'ExpenseType', u'ExpenseArea', u'VATNumber', u'Date', u'TransactionNumber']
 
-aliases = {'VATNumber': ['vatregistrationnumber'],
+aliases = {'VATNumber': ['vatregistrationnumber', 'suppliervatregistrationnumber'],
            'TransactionNumber': ['transno'],
+           'Date': ['dateofpayment', 'transactiondate', 'paymentdate'],
+           'Amount': ['amountinsterling'],
+           'SupplierName': ['merchantname'],
+           'DepartmentFamily': ['department']
            }
 
+# Add all the identities to aliases, so we can use it for lookup
 for k in PREDEFINED:
     aliases.setdefault(k, []).append(normalise_header(k))
 
-def candidates(engine, columns_table, text):
-    try:
-        columns = [c.get('column') for c in sl.distinct(engine, columns_table, 'column') if c.get('column') is not None]
-    except KeyError:
-        columns = []
-        
-    columns = set(columns + PREDEFINED)
-    columns = [(c, distance(text, c), normalised(c)) for c in columns]
-    return sorted(columns, key=lambda (a,b,c): b)
-
+# Find the distance to the closest alias
 def alias_distance(from_col, to_col):
     distances = map(lambda x: Levenshtein.distance(from_col, unicode(x)), aliases[to_col])
     return min(distances)
@@ -42,6 +40,7 @@ def assign_defaults(cols):
     for to_col in list(left_over):
         to_norm = normalise_header(to_col)
         for from_col in list(unmapped): 
+            # First, assign all literal matches
             if to_norm == from_col:
                 mapping[from_col] = to_col
                 left_over.remove(to_col)
@@ -49,10 +48,13 @@ def assign_defaults(cols):
             else:
                 distances.setdefault(from_col, {})[to_col] = alias_distance(from_col, to_col)
 
-    while len(left_over):
+    # Then, assign each predefined name to the closest match
+    while len(left_over) and len(unmapped):
         distance_list = []
         for to_col in left_over:
-            for from_col in unmapped:
+            unmapped_tmp = unmapped.copy()
+            while len(unmapped_tmp) > 0:
+                from_col = unmapped_tmp.pop()
                 distance_list.append( (distances[from_col][to_col], from_col, to_col) )
 
         d, f, t = min(distance_list, key=lambda x: x[0])
@@ -65,9 +67,11 @@ def assign_defaults(cols):
     
     return mapping, list(left_over)
 
-def prompt_for(cols, mapping, left_over):
+def prompt_for(cols, mapping, left_over, count):
     print
     print "Matching: %s" % ', '.join(cols)
+    if count is not None:
+        print "Used in %d tables" % count
     print "Mapping:"
     for col in cols:
         print "  %s: %s" % (col, mapping.get(col, ''))
@@ -86,17 +90,18 @@ def edit_mapping(cols, mapping, left_over):
         return mapping, left_over
 
     with NamedTemporaryFile() as temp:
+        print >>temp, "# -*- coding: utf-8 -*-"
         print >>temp, "# Lines beginning with # are ignored, as are blank lines"
         print >>temp, "# Other lines should be of the form 'normalisedinputname: StandardName'"
         print >>temp, ''
 
         for col in cols:
-            print >>temp, '%s: %s' % (col, mapping.get(col, ''))
+            print >>temp, (u'%s: %s' % (col, mapping.get(col, ''))).encode('utf-8')
 
         print >>temp, ''
         print >>temp, '# Unassigned standard names:'
         for col in sorted(left_over):
-            print >>temp, '# %s' % col
+            print >>temp, '# %s' % col.encode('utf-8')
 
         temp.flush()
         x = os.spawnlp(os.P_WAIT,editor,editor,temp.name)
@@ -107,32 +112,32 @@ def edit_mapping(cols, mapping, left_over):
         mapping = {}
         left_over = set(PREDEFINED)
         for line in temp:
-            line = line.strip()
+            line = unicode(line, 'utf-8').strip()
             if line.startswith('#') or len(line) == 0:
                 continue
             from_name, to_name = line.split(':')
             from_name = from_name.strip()
             to_name = to_name.strip()
-            mapping[from_name] = to_name
-            left_over.discard(to_name)
+            if len(to_name):
+                mapping[from_name] = to_name
+                left_over.discard(to_name)
         return mapping, list(left_over)
 
-def map_column(engine, columns_table, row):
-    normalised = row['normalised']
-    cols = normalised.split(',')
+def map_column(engine, columns_table, normalised, count):
+    cols = filter(lambda c: len(c) > 0, normalised.split(','))
 
     mapping,left_over = assign_defaults(cols)
 
     while True:
-        line = prompt_for(cols, mapping, left_over)
+        line = prompt_for(cols, mapping, left_over, count)
         if line == 'a':
             return mapping
         elif line == 'e':
             mapping,left_over = edit_mapping(cols, mapping, left_over)
         elif line == 's':
-            return None
+            raise ValueError('Skipping')
         elif line == 'b':
-            raise ValueError()
+            return None
         elif line == 'q':
             sys.exit(0)
 
@@ -143,22 +148,29 @@ def connect():
 
 def map_columns():
     engine, columns_table = connect()
-    for row in sl.all(engine, columns_table):
-        if row.get('valid'):
+
+    q = select([columns_table.c.normalised, columns_table.c.count, columns_table.c.valid], order_by=[columns_table.c.count.desc().nullslast()])
+
+    for normalised, count, valid in engine.execute(q):
+        if valid is not None:
             continue
         try:
-            columns = map_column(engine, columns_table, row)
+            columns = map_column(engine, columns_table, normalised, count)
             if columns is not None:
                 sl.upsert(engine, columns_table, 
-                          {'normalised': row['normalised'],
+                          {'normalised': normalised,
                            'valid': True,
                            'column_map': json.dumps(columns)},
                           ['normalised'])
-        except ValueError:
-            sl.upsert(engine, columns_table, 
-                      {'normalised': row['normalised'],
-                       'valid': False}, 
-                      ['normalised'])
+            else:
+                sl.upsert(engine, columns_table, 
+                          {'normalised': normalised,
+                           'valid': False}, 
+                          ['normalised'])
+        except SystemExit:
+            raise
+        except:
+            traceback.print_exc()
 
 if __name__ == '__main__':
     map_columns()

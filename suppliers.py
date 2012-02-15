@@ -88,6 +88,7 @@ if __name__ == '__main__':
             sl.upsert(engine, supplier_table, {'original': r['original'],
                                                'name': r['result']['name'],
                                                'uri': r['result']['uri'],
+                                               'score': r['result']['score'],
                                                },
                       ['original'])
             print "# %d rows and %d tables visited" % (rows_count, tables_count)

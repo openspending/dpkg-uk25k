@@ -47,7 +47,6 @@ def extract_table(engine, table, row, resource_id, force):
     #assert os.path.exists(source_path(row)), "No source file exists."
     
     connection = engine.connect()
-    column_sets_table = sl.get_table(connection, 'column_sets')
     extracted_table = sl.get_table(connection, 'extracted')
 
     # Skip over tables we have already extracted
@@ -97,18 +96,12 @@ def extract_table(engine, table, row, resource_id, force):
             sl.drop_table(connection, raw_table_name)
             raw_table = sl.get_table(connection, raw_table_name)
 
-            found_rows = False
             for row_ in row_set:
                 cells = dict([(keyify(c.column), convert_(c.value)) for c in row_ if \
                     len(c.column.strip())])
                 for cell, value in cells.items():
                     values[cell][value] += 1
                 sl.add_row(connection, raw_table, cells)
-                found_rows = True
-
-            # Don't bother recording columns data for empty tables
-            if found_rows:
-                sl.upsert(connection, column_sets_table, {'normalised': ','.join(normalise_header_list(headers))}, ['normalised'])
 
         sl.upsert(connection, extracted_table, {'resource_id': resource_id,
                                                 'max_table_id': table_id,

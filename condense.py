@@ -4,6 +4,7 @@ import sqlaload as sl
 import logging
 import sys
 import time
+import json
 
 from common import *
 
@@ -28,19 +29,34 @@ def condense(engine, resource_id, table_id, force):
         raw_table = sl.get_table(connection, 'raw_%s' % table_suffix)
         sl.drop_table(connection, 'spending_%s' % table_suffix)
         spending_table = sl.get_table(connection, 'spending_%s' % table_suffix)
-        columns_table = sl.get_table(connection, 'columns')
-        mappings = dict([(c.get('original'), c.get('column')) for c in \
-                         sl.all(connection, columns_table) if c.get('valid')])
+        columns_table = sl.get_table(connection, 'column_sets')
+
+        normalise_map = normalised_columns_map(raw_table)
+        normalised_headers = ','.join(sorted(normalise_map.values()))
+        mapping_row = sl.find_one(connection, columns_table, normalised=normalised_headers)
+
+        if mapping_row is None or not mapping_row.get('valid'):
+            # This table is unmapped, cannot be condensed
+            return
+
+        column_mapping = json.loads(mapping_row['column_map'])
+
+        # Build the final mapping from input column to output column
+        mapping = {}
+        for k,n in normalise_map.iteritems():
+            if n in column_mapping:
+                mapping[k] = column_mapping[n]
+        
         for row in sl.all(connection, raw_table):
             spending_row = {}
             for key, value in row.items():
-                if key not in mappings:
+                if key not in mapping:
                     continue
                 if not value or not len(value.strip()):
                     continue
-                if mappings[key] in spending_row:
+                if mapping[key] in spending_row:
                     continue
-                spending_row[mappings[key]] = value
+                spending_row[mapping[key]] = value.strip()
             #print spending_row
             sl.add_row(connection, spending_table, spending_row)
         sl.upsert(connection, condensed_table, {'resource_id': resource_id,

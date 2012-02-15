@@ -37,7 +37,7 @@ def retrieve(row, engine, force):
             return
         url = fix_url(row['url'])
         print "Fetching %s" % url
-        res = urllib2.urlopen(url)
+        res = urllib2.urlopen(url, None, 30)
 
         fh = open(source_path(row), 'wb')
         fh.write(res.read())

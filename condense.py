@@ -44,7 +44,7 @@ def condense(engine, resource_id, table_id, force):
         # Build the final mapping from input column to output column
         mapping = {}
         for k,n in normalise_map.iteritems():
-            if n in column_mapping:
+            if n in column_mapping and column_mapping[n] is not None and len(column_mapping[n]) > 0:
                 mapping[k] = column_mapping[n]
         
         for row in sl.all(connection, raw_table):

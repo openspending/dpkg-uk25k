@@ -155,9 +155,8 @@ def map_columns():
         normalised = row['normalised']
         count = row['count']
         if row.has_key('valid'):
-            valid = row['valid']
-        if valid is not None:
-            continue
+            if row['valid'] is not None:
+                continue
         try:
             columns = map_column(engine, columns_table, normalised, count)
             if columns is not None:

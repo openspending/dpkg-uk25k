@@ -149,9 +149,12 @@ def connect():
 def map_columns():
     engine, columns_table = connect()
 
-    q = select([columns_table.c.normalised, columns_table.c.count, columns_table.c.valid], order_by=[columns_table.c.count.desc().nullslast()])
+    q = columns_table.select(order_by=[columns_table.c.count.desc().nullslast()])
 
-    for normalised, count, valid in engine.execute(q):
+    for row in engine.execute(q):
+        normalised = row['normalised']
+        count = row['count']
+        valid = row['valid']
         if valid is not None:
             continue
         try:

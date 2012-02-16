@@ -123,7 +123,7 @@ def edit_mapping(cols, mapping, left_over):
                 left_over.discard(to_name)
         return mapping, list(left_over)
 
-def map_column(engine, columns_table, normalised, count):
+def map_column(columns_table, normalised, count):
     cols = filter(lambda c: len(c) > 0, normalised.split(','))
 
     mapping,left_over = assign_defaults(cols)
@@ -150,15 +150,20 @@ def map_columns():
     engine, columns_table = connect()
 
     q = columns_table.select(order_by=[columns_table.c.count.desc().nullslast()])
+    rows = []
 
+    # Finish the query before we start updating
     for row in engine.execute(q):
-        normalised = row['normalised']
-        count = row['count']
         if row.has_key('valid'):
             if row['valid'] is not None:
                 continue
+        rows.append(row)
+
+    for row in rows:
+        normalised = row['normalised']
+        count = row['count']
         try:
-            columns = map_column(engine, columns_table, normalised, count)
+            columns = map_column(columns_table, normalised, count)
             if columns is not None:
                 sl.upsert(engine, columns_table, 
                           {'normalised': normalised,

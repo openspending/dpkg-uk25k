@@ -48,6 +48,9 @@ def normalise_header_map(headers):
 def normalise_header_list(headers):
     return sorted(normalise_header_map(headers).values())
 
-def normalised_columns_map(table):
+def normalise_columns_map(table):
     columns = filter(lambda c: c != 'id', map(lambda c: c.name, table.c))
     return normalise_header_map(columns)
+
+def normalise_columns_list(table):
+    return sorted(normalise_columns_map(table).values())

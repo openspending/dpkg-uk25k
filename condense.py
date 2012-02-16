@@ -31,7 +31,7 @@ def condense(engine, resource_id, table_id, force):
         spending_table = sl.get_table(connection, 'spending_%s' % table_suffix)
         columns_table = sl.get_table(connection, 'column_sets')
 
-        normalise_map = normalised_columns_map(raw_table)
+        normalise_map = normalise_columns_map(raw_table)
         normalised_headers = ','.join(sorted(normalise_map.values()))
         mapping_row = sl.find_one(connection, columns_table, normalised=normalised_headers)
 

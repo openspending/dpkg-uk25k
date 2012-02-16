@@ -4,3 +4,4 @@ nose
 psycopg2
 python-Levenshtein
 ckanclient
+openpyxl

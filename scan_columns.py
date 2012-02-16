@@ -15,7 +15,7 @@ def scan(engine, resource_id, table_id, publisher):
         return
 
     raw_table = sl.get_table(engine, 'raw_%s' % table_suffix)
-    normalised_headers = ','.join(normalised_columns(raw_table))
+    normalised_headers = ','.join(normalised_columns_map(raw_table))
 
     if sl.find_one(engine, raw_table) is None:
         # Skip tables that contain no rows

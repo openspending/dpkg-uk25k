@@ -154,7 +154,8 @@ def map_columns():
     for row in engine.execute(q):
         normalised = row['normalised']
         count = row['count']
-        valid = row['valid']
+        if row.has_key('valid'):
+            valid = row['valid']
         if valid is not None:
             continue
         try:

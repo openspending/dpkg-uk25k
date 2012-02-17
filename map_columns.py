@@ -13,12 +13,12 @@ from sqlalchemy import select
 PREDEFINED = [u'SupplierName', u'DepartmentFamily', u'Entity', u'Amount',
     u'ExpenseType', u'ExpenseArea', u'VATNumber', u'Date', u'TransactionNumber']
 
-aliases = {'VATNumber': ['vatregistrationnumber', 'suppliervatregistrationnumber'],
-           'TransactionNumber': ['transno'],
+aliases = {'VATNumber': ['vatregistrationnumber', 'suppliervatregistrationnumber', 'vatregno', 'vatregistration', 'vatno'],
+           'TransactionNumber': ['transno', 'transactionno'],
            'Date': ['dateofpayment', 'transactiondate', 'paymentdate'],
            'Amount': ['amountinsterling'],
-           'SupplierName': ['merchantname'],
-           'DepartmentFamily': ['department']
+           'SupplierName': ['merchantname', 'supplier'],
+           'DepartmentFamily': ['department', 'deptfamily']
            }
 
 # Add all the identities to aliases, so we can use it for lookup

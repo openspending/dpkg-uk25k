@@ -16,8 +16,8 @@ PREDEFINED = [u'SupplierName', u'DepartmentFamily', u'Entity', u'Amount',
 aliases = {'VATNumber': ['vatregistrationnumber', 'suppliervatregistrationnumber', 'vatregno', 'vatregistration', 'vatno'],
            'TransactionNumber': ['transno', 'transactionno'],
            'Date': ['dateofpayment', 'transactiondate', 'paymentdate'],
-           'Amount': ['amountinsterling'],
-           'SupplierName': ['merchantname', 'supplier'],
+           'Amount': ['amountinsterling', 'net'],
+           'SupplierName': ['merchantname', 'supplier', 'vendorname'],
            'DepartmentFamily': ['department', 'deptfamily']
            }
 

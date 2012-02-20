@@ -108,7 +108,7 @@ def format(engine, resource_id, table_id, force):
                          }
     start = time.time()
     try:
-        if not force and condensed_row['format_time'] is not None:
+        if not force and condensed_row.get('format_time') is not None:
             return
         do_format(connection, resource_id, table_id)
         condensed_row['format_time'] = time.time() - start

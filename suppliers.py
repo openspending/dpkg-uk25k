@@ -8,6 +8,7 @@ import json
 import urllib
 import urllib2
 import multiprocessing
+import traceback
 from contextlib import closing
 
 from common import *
@@ -57,18 +58,20 @@ def supplier_names(engine, table):
     return chain.from_iterable(supplier_tables(engine, table))
 
 def lookup_supplier_name(name):
+    error = None
     try:
         query = {'query': name, 'limit': 1}
         url = "http://opencorporates.com/reconcile?%s" % urllib.urlencode({'query': json.dumps(query)})
-        with closing(urllib2.urlopen(url), None, 30) as f:
+        with closing(urllib2.urlopen(url, None, 30)) as f:
             data = json.loads(f.read())
 
         if len(data['result']) > 0:
             return {'original': name,
                     'result': data['result'][0],
                     }
-    except:
-        return None
+    except Exception, e:
+        error = traceback.format_exc()
+    return {'original': name, 'error': error}
 
 if __name__ == '__main__':
     logging.basicConfig()
@@ -83,7 +86,7 @@ if __name__ == '__main__':
     fails = 0
 
     for r in pool.imap_unordered(lookup_supplier_name, supplier_names(engine, table)):
-        if r is not None:
+        if r.has_key('result'):
             print "%s ==> %s" % (r['original'], r['result']['name'])
             sl.upsert(engine, supplier_table, {'original': r['original'],
                                                'name': r['result']['name'],
@@ -93,6 +96,9 @@ if __name__ == '__main__':
                       ['original'])
             print "# %d rows and %d tables visited" % (rows_count, tables_count)
         else:
+            if r['error'] is not None:
+                print r['error']
+            #print "%s failed!" % r['original']
             fails = fails + 1
             if fails % 100 == 0:
                 print "# %d requests failed" % fails

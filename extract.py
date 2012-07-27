@@ -120,7 +120,7 @@ def extract_table(engine, table, row, resource_id, force):
 def connect():
     engine = db_connect()
     src_table = sl.get_table(engine, 'source')
-    return engine,src_table
+    return engine, src_table
 
 def describe(row):
     return 'extract_table: %(package_name)s/%(resource_id)s %(url)s' % row

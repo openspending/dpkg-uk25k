@@ -149,7 +149,7 @@ def connect():
 def map_columns():
     engine, columns_table = connect()
 
-    q = columns_table.select(order_by=[columns_table.c.count.desc().nullslast()])
+    q = columns_table.select(order_by=[columns_table.c.count.desc()])
     rows = []
 
     # Finish the query before we start updating

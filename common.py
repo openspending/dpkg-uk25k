@@ -1,5 +1,8 @@
 import os
+import logging
 import sqlaload as sl
+
+logging.basicConfig(level=logging.NOTSET)
 
 def source_path(row):
     source_dir = 'sources'

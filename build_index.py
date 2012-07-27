@@ -4,17 +4,34 @@ import sqlaload as sl
 from ckanclient import CkanClient
 from common import *
 
+log = logging.getLogger('build_index')
+
+GROUPS = {}
+
+def fetch_group(client, package):
+    if len(package['groups']) != 1:
+        log.warn("Invalid groups: %r", package['groups'])
+        return {}
+    group_name = package['groups'].pop()
+    if group_name not in GROUPS:
+        GROUPS[group_name] = client.group_entity_get(group_name)
+    return GROUPS[group_name]
 
 def fetch_package(client, package_name, engine, table):
-    print package_name
     pkg = client.package_entity_get(package_name)
+    log.info("Dataset: %s", pkg['name'])
+    group = fetch_group(client, pkg)
     for res in pkg['resources']:
+        log.info(" > Resource %s", res['url'])
         sl.upsert(engine, table, {
             'resource_id': res['id'],
             'package_id': pkg['id'],
             'package_name': pkg['name'],
+            'package_title': pkg['title'],
             'url': res['url'],
-            'publisher': pkg.get('extras', {}).get('published_by'),
+            'publisher_name': group.get('name'),
+            'publisher_title': group.get('title'),
+            'publisher_type': group.get('type'),
             'format': res['format'],
             'description': res['description']
             }, ['resource_id'])
@@ -22,16 +39,15 @@ def fetch_package(client, package_name, engine, table):
 def connect():
     engine = db_connect()
     src_table = sl.get_table(engine, 'source')
-    return engine,src_table
+    return engine, src_table
 
-def test_build_index():
+def build_index():
     engine, table = connect()
-    client = CkanClient(base_location='http://catalogue.data.gov.uk/api')
+    client = CkanClient(base_location='http://data.gov.uk/api')
     res = client.package_search("tags:spend-transactions",
             search_options={'limit': 5})
     for package_name in res['results']:
-        fetch_package.description = 'metadata: %s' % package_name
-        yield fetch_package, client, package_name, engine, table
+        fetch_package(client, package_name, engine, table)
 
-#if __name__ == '__main__':
-#    build_index(engine)
+if __name__ == '__main__':
+    build_index()

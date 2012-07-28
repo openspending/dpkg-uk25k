@@ -1,14 +1,12 @@
 import os
 import csv
 import logging 
-import traceback
 import sys
 import time
 import chardet
 import codecs
 import re
 from collections import defaultdict
-from functools import partial
 
 from messytables import *
 import sqlaload as sl

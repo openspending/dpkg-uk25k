@@ -44,7 +44,7 @@ def retrieve(row, engine, source_table, force):
             message = unicode(len(data))
         else:
             message = unicode(res.error)
-    except requests.exceptions.RequestException, re:
+    except Exception, re:
         log.exception(re)
         message = unicode(re)
         success = False

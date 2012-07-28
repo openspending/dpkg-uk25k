@@ -51,6 +51,9 @@ def combine_sheet(engine, resource, sheet_id, table, mapping):
         }
     spending_table = sl.get_table(engine, 'spending')
     rows = 0
+    sl.delete(engine, spending_table,
+            resource_id=resource['resource_id'],
+            sheet_id=sheet_id)
     for row in sl.all(engine, table):
         data = dict(base)
         for col, value in row.items():
@@ -60,8 +63,7 @@ def combine_sheet(engine, resource, sheet_id, table, mapping):
             mapped = mapping.get(col)
             if mapped is not None:
                 data[mapped] = value
-        sl.upsert(engine, spending_table, data, 
-                unique=['resource_id', 'sheet_id', 'row_id'])
+        sl.add_row(engine, spending_table, data)
         rows += 1
     log.info("Loaded %s rows in %s ms", rows,
             int((time.time()-begin)*1000))

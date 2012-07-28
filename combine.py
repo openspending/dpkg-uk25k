@@ -19,12 +19,13 @@ def normalize(column_name):
 def column_mapping(row, columns):
     nkc = nk_connect('uk25k-column-names')
     columns.remove('id')
-    if not len(columns):
-        return None
     sheet_signature = '|'.join(sorted(set(map(normalize, columns))))
     mapping = {}
     failed = False
     for column in columns:
+        if column.startswith("column_"):
+            mapping[column] = None
+            continue
         key = '%s @ [%s]' % (normalize(column), sheet_signature)
         if key in KEY_CACHE:
             mapping[column] = KEY_CACHE[key]
@@ -37,6 +38,8 @@ def column_mapping(row, columns):
         except nk.NKNoMatch, nm:
             failed = True
         KEY_CACHE[key] = mapping.get(column)
+    if not len([(k,v) for k,v in mapping.items() if v is not None]):
+        return None
     return None if failed else mapping
 
 def combine_sheet(engine, resource, sheet_id, table, mapping):
@@ -87,10 +90,11 @@ def combine_resource(engine, source_table, row, force):
     if not row['extract_status']:
         return
 
-    # Skip over tables we have already combineed
+    # Skip over tables we have already combined
     if not force and sl.find_one(engine, source_table,
             resource_id=row['resource_id'],
-            combine_hash=row['extract_hash']) is not None:
+            combine_hash=row['extract_hash'],
+            combine_status=True) is not None:
         return
 
     log.info("Combine: %s, Resource %s", row['package_name'], row['resource_id'])

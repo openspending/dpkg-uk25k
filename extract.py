@@ -103,6 +103,7 @@ def extract_resource(engine, source_table, row, force):
     # Skip over tables we have already extracted
     if not force and sl.find_one(engine, source_table,
             resource_id=row['resource_id'],
+            extract_status=True,
             extract_hash=row['retrieve_hash']) is not None:
         return
 

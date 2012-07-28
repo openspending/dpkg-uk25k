@@ -68,9 +68,10 @@ def extract_resource_core(engine, row):
         elif source_data.startswith('PK'):
             table_set = XLSXTableSet(source_path(row))
         else:
-            cd = chardet.detect(source_data)
-            fh.close()
-            fh = codecs.open(source_path(row), 'r', cd['encoding'] or 'utf-8')
+            fh.seek(0)
+            #cd = chardet.detect(source_data)
+            #fh.close()
+            #fh = codecs.open(source_path(row), 'r', cd['encoding'] or 'utf-8')
             table_set = CSVTableSet.from_fileobj(fh)
 
         sheets = 0

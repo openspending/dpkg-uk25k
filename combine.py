@@ -58,7 +58,7 @@ def combine_sheet(engine, resource, sheet_id, table, mapping):
             if mapped is not None:
                 data[mapped] = value
         sl.upsert(engine, spending_table, data, 
-                unique=['resource_hash', 'sheet_id', 'row_id'])
+                unique=['resource_id', 'sheet_id', 'row_id'])
         rows += 1
     log.info("Loaded %s rows in %s ms", rows,
             int((time.time()-begin)*1000))

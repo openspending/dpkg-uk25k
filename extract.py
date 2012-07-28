@@ -15,7 +15,7 @@ import sqlaload as sl
 
 from common import *
 
-log = logging.getLogger(__name__)
+log = logging.getLogger('extract')
 
 def keyify(key):
     # None of these characters can be used in column names, due to sqlalchemy bugs
@@ -38,27 +38,17 @@ def convert_(value):
 html_re = re.compile(r'<!doctype|<html', re.I)
 COMPDOC_SIGNATURE = "\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1"
 
-def extract_table(engine, table, row, resource_id, force):
-    # For now, interpret lack of data as not-failure at this stage, on
-    # the basis that it was already reported as failure at the
-    # retrieve stage and will just clutter up this list.
-    if not os.path.exists(source_path(row)):
-        return
-    #assert os.path.exists(source_path(row)), "No source file exists."
-    
+def extract_resource_core(engine, row):
     connection = engine.connect()
-    extracted_table = sl.get_table(connection, 'extracted')
-
-    # Skip over tables we have already extracted
-    if not force and sl.find_one(engine, extracted_table, resource_id=resource_id) is not None:
-        return
-
     fh = open(source_path(row), 'rb')
     source_data = fh.read()
 
-    assert len(source_data) > 0, "Empty file"
-    assert html_re.search(source_data[0:1024]) is None, "Looks like HTML"
-    assert not source_data.startswith('%PDF'), "Looks like PDF"
+    if not len(source_data):
+        return False, 0, "Empty file"
+    if html_re.search(source_data[0:1024]) is not None:
+        return False, 0, "HTML file detected."
+    if source_data.startswith('%PDF'):
+        return False, 0, "PDF file detected."
 
     trans = connection.begin()
     start = time.time()
@@ -71,28 +61,23 @@ def extract_table(engine, table, row, resource_id, force):
         else:
             cd = chardet.detect(source_data)
             fh.close()
-            fh = codecs.open(source_path(row), 'r', cd['encoding'])
-
+            fh = codecs.open(source_path(row), 'r', cd['encoding'] or 'utf-8')
             table_set = CSVTableSet.from_fileobj(fh)
 
-        for table_id, row_set in enumerate(table_set.tables):
-            #types = type_guess(row_set.sample)
-            #row_set.register_processor(types_processor(types))
+        sheets = 0
+        for sheet_id, row_set in enumerate(table_set.tables):
             offset, headers = headers_guess(row_set.sample)
             headers = map(convert_, headers)
-            assert len(headers)>1 or len(table_set.tables) > 1, "Only one column was detected; assuming this is not valid data."
-            #print headers
-
-            # We might have multiple table sets where one is blank or ranty text or something. Skip those.
             if len(headers) <= 1:
                 continue
-            
+            sheets += 1
+
             row_set.register_processor(headers_processor(headers))
             row_set.register_processor(offset_processor(offset + 1))
 
             values = defaultdict(lambda: defaultdict(int))
 
-            raw_table_name = 'raw_%s_table%s' % (resource_id, table_id)
+            raw_table_name = 'raw_%s_sheet%s' % (row['resource_id'], sheet_id)
             sl.drop_table(connection, raw_table_name)
             raw_table = sl.get_table(connection, raw_table_name)
 
@@ -103,44 +88,42 @@ def extract_table(engine, table, row, resource_id, force):
                     values[cell][value] += 1
                 sl.add_row(connection, raw_table, cells)
 
-        sl.upsert(connection, extracted_table, {'resource_id': resource_id,
-                                                'max_table_id': table_id,
-                                                'extraction_time': time.time() - start,
-                                                }, ['resource_id'])
-
         trans.commit()
-    #except Exception:
-    #    traceback.print_exc()
-    #    #log.exception(ex)
-    #    assert False, traceback.format_exc()
+        return sheets>0, sheets, ""
+    except Exception, ex:
+        log.exception(ex)
+        return False, 0, unicode(ex)
     finally:
+        log.debug("Processed in %sms", int(1000*(time.time() - start)))
         connection.close()
         fh.close()
 
-def connect():
+def extract_resource(engine, source_table, row, force):
+    if not row['retrieve_status']:
+        return
+
+    # Skip over tables we have already extracted
+    if not force and sl.find_one(engine, source_table,
+            resource_id=row['resource_id'],
+            extract_hash=row['retrieve_hash']) is not None:
+        return
+
+    log.info("Extracting: %s, File %s", row['package_name'], row['resource_id'])
+
+    status, sheets, message = extract_resource_core(engine, row)
+    sl.upsert(engine, source_table, {
+        'resource_id': row['resource_id'],
+        'extract_hash': row['retrieve_hash'],
+        'extract_status': status,
+        'extract_message': message,
+        'sheets': sheets
+        }, unique=['resource_id'])
+
+def extract_all(force=False):
     engine = db_connect()
-    src_table = sl.get_table(engine, 'source')
-    return engine, src_table
-
-def describe(row):
-    return 'extract_table: %(package_name)s/%(resource_id)s %(url)s' % row
-
-def test_extract_all():
-    engine, table = connect()
-    for row in sl.find(engine, table):
-        extract = partial(extract_table, engine, table, row)
-        extract.description = describe(row)
-        yield extract, row['resource_id'], False
+    source_table = sl.get_table(engine, 'source')
+    for row in sl.find(engine, source_table):
+        extract_resource(engine, source_table, row, force)
 
 if __name__ == '__main__':
-    logging.basicConfig()
-    logging.getLogger(__name__).setLevel(logging.DEBUG)
-    logging.getLogger('sqlalchemy.engine').setLevel(logging.WARN)
-    engine,table = connect()
-    for id in sys.argv[1:]:
-        row = sl.find_one(engine, table, resource_id=id)
-        if row is None:
-            print "Could not find row %s" % id
-        else:
-            print describe(row)
-            extract_table(engine, table, row, row['resource_id'], True)
+    extract_all(False)

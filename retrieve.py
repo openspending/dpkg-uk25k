@@ -1,6 +1,7 @@
 import os, sys
 import urlparse
 import urllib
+import hashlib
 import requests
 import sqlaload as sl
 from datetime import datetime
@@ -30,11 +31,13 @@ def retrieve(row, engine, source_table, force):
         return
     log.info('Fetching: %s, %s', row['package_name'], row['url'])
     try:
+        content_id = None
         res = requests.get(fix_url(row['url']), allow_redirects=True,
                            verify=False, timeout=30.0)
         success = res.ok
         if success:
             data = res.raw.read()
+            content_id = hashlib.sha256(data).hexdigest()
             fh = open(source_path(row), 'wb')
             fh.write(data)
             fh.close()
@@ -48,6 +51,7 @@ def retrieve(row, engine, source_table, force):
     sl.upsert(engine, source_table, {
         'resource_id': row['resource_id'],
         'retrieve_status': success,
+        'retrieve_hash': content_id,
         'retrieve_message': message},
         unique=['resource_id'])
 

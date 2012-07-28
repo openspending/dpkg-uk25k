@@ -1,5 +1,4 @@
 import sqlaload as sl
-import nkclient as nk
 
 from common import *
 

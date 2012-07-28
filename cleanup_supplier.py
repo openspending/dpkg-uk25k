@@ -9,7 +9,7 @@ log = logging.getLogger('cleanup_supplier')
 session = requests.session()
 
 SUPPLIER_FIELDS = ['SupplierName']
-SCORE_CUTOFF = 80
+SCORE_CUTOFF = 70
 
 def lookup(val, engine):
     supplier_table = sl.get_table(engine, 'supplier')
@@ -18,7 +18,7 @@ def lookup(val, engine):
         return data['canonical'], data['uri'], data['score']
     try:
         query = json.dumps({'query': val, 'limit': 1})
-        res = session.get('http://opencorporates.com/reconcile',
+        res = session.get('http://opencorporates.com/reconcile/gb',
                 params={'query': query})
         data = {'name': val, 'canonical': None, 'uri': None, 'score': 0}
         if res.ok and res.json and len(res.json.get('result')):

@@ -1,7 +1,6 @@
 -e git+https://github.com/okfn/messytables#egg=messytables
 -e git+https://github.com/okfn/sqlaload#egg=sqlaload
-nose
+-e git+https://github.com/pudo/nomenklatura-client#egg=nkclient
 psycopg2
-python-Levenshtein
 ckanclient
 openpyxl

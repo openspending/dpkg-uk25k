@@ -6,7 +6,7 @@ from common import *
 log = logging.getLogger('validate')
 
 def generate_signature(row):
-    sig = '$'.join([
+    sig = '*$*'.join([
         unicode(row.get('AmountFormatted') or ''),
         row.get('DateFormatted') or '',
         row.get('SupplierNameCanonical') or '',

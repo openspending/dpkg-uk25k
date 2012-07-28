@@ -4,9 +4,14 @@ import sqlaload as sl
 import nkclient as nk
 
 from common import *
+from common import issue as _issue
 
 log = logging.getLogger('combine')
 KEY_CACHE = {}
+
+def issue(engine, resource_id, resource_hash, message, data={}):
+    _issue(engine, resource_id, resource_hash, 'combine',
+           message, data=data)
 
 def normalize(column_name):
     column_name = column_name.replace('.', '')
@@ -86,7 +91,7 @@ def combine_resource_core(engine, row):
             continue
         if not combine_sheet(engine, row, sheet_id, table, mapping):
             succces = False
-    return success, ""
+    return success
 
 def combine_resource(engine, source_table, row, force):
     if not row['extract_status']:
@@ -101,12 +106,11 @@ def combine_resource(engine, source_table, row, force):
 
     log.info("Combine: %s, Resource %s", row['package_name'], row['resource_id'])
 
-    status, message = combine_resource_core(engine, row)
+    status = combine_resource_core(engine, row)
     sl.upsert(engine, source_table, {
         'resource_id': row['resource_id'],
         'combine_hash': row['extract_hash'],
         'combine_status': status,
-        'combine_message': message,
         }, unique=['resource_id'])
 
 def combine_all(force=False):

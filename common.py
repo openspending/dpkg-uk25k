@@ -1,11 +1,28 @@
 import os
+import json
 import logging
+import datetime
 import sqlaload as sl
 import nkclient as nk
 
 logging.basicConfig(level=logging.NOTSET)
 logging.getLogger('sqlaload').setLevel(level=logging.WARN)
 logging.getLogger('requests').setLevel(level=logging.WARN)
+
+log = logging.getLogger('issue')
+
+def issue(engine, resource_id, resource_hash, stage, message,
+          data={}):
+    table = sl.get_table(engine, 'issue')
+    log.debug("R[%s]: %s", resource_id, message)
+    sl.add_row(engine, table, {
+        'resource_id': resource_id,
+        'resource_hash': resource_hash,
+        'timestamp': datetime.datetime.utcnow(),
+        'stage': stage,
+        'message': message,
+        'data': json.dumps(data)
+        })
 
 def source_path(row):
     source_dir = 'sources'

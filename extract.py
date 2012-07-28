@@ -12,8 +12,13 @@ from messytables import *
 import sqlaload as sl
 
 from common import *
+from common import issue as _issue
 
 log = logging.getLogger('extract')
+
+def issue(engine, resource_id, resource_hash, message, data={}):
+    _issue(engine, resource_id, resource_hash, 'extract',
+           message, data=data)
 
 def keyify(key):
     # None of these characters can be used in column names, due to sqlalchemy bugs
@@ -42,11 +47,17 @@ def extract_resource_core(engine, row):
     source_data = fh.read()
 
     if not len(source_data):
-        return False, 0, "Empty file"
+        issue(engine, row['resource_id'], row['retrieve_hash'],
+              "Empty file")
+        return False, 0
     if html_re.search(source_data[0:1024]) is not None:
-        return False, 0, "HTML file detected."
+        issue(engine, row['resource_id'], row['retrieve_hash'],
+              "HTML file detected")
+        return False, 0
     if source_data.startswith('%PDF'):
-        return False, 0, "PDF file detected."
+        issue(engine, row['resource_id'], row['retrieve_hash'],
+              "PDF file detected")
+        return False, 0
 
     trans = connection.begin()
     start = time.time()
@@ -87,10 +98,12 @@ def extract_resource_core(engine, row):
                 sl.add_row(connection, raw_table, cells)
 
         trans.commit()
-        return sheets>0, sheets, ""
+        return sheets>0, sheets
     except Exception, ex:
         log.exception(ex)
-        return False, 0, unicode(ex)
+        issue(engine, row['resource_id'], row['retrieve_hash'],
+              unicode(ex))
+        return False, 0
     finally:
         log.debug("Processed in %sms", int(1000*(time.time() - start)))
         connection.close()
@@ -109,12 +122,11 @@ def extract_resource(engine, source_table, row, force):
 
     log.info("Extracting: %s, File %s", row['package_name'], row['resource_id'])
 
-    status, sheets, message = extract_resource_core(engine, row)
+    status, sheets = extract_resource_core(engine, row)
     sl.upsert(engine, source_table, {
         'resource_id': row['resource_id'],
         'extract_hash': row['retrieve_hash'],
         'extract_status': status,
-        'extract_message': message,
         'sheets': sheets
         }, unique=['resource_id'])
 

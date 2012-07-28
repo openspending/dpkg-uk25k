@@ -2,8 +2,13 @@ import sqlaload as sl
 import hashlib
 
 from common import *
+from common import issue as _issue
 
 log = logging.getLogger('validate')
+
+def issue(engine, resource_id, resource_hash, message, data={}):
+    _issue(engine, resource_id, resource_hash, 'validate',
+           message, data=data)
 
 def generate_signature(row):
     sig = '*$*'.join([

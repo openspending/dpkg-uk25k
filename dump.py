@@ -1,8 +1,6 @@
 import sqlaload as sl
 import csv
 
-from pprint import pprint
-
 from common import *
 
 log = logging.getLogger('dump')

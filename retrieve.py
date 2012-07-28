@@ -7,9 +7,14 @@ import sqlaload as sl
 from datetime import datetime
 
 from common import *
+from common import issue as _issue
 from functools import partial
 
 log = logging.getLogger('retrieve')
+
+def issue(engine, resource_id, resource_hash, message, data={}):
+    _issue(engine, resource_id, resource_hash, 'retrieve',
+           message, data=data)
 
 def fix_url(url):
     # The correct character set for URLs is "broken". This is probably close enough.
@@ -41,18 +46,18 @@ def retrieve(row, engine, source_table, force):
             fh = open(source_path(row), 'wb')
             fh.write(data)
             fh.close()
-            message = unicode(len(data))
         else:
-            message = unicode(res.error)
+            issue(engine, row['resource_id'], None,
+                  str(res.status_code), data=res.content)
     except Exception, re:
         log.exception(re)
-        message = unicode(re)
+        issue(engine, row['resource_id'], None, 
+              unicode(re))
         success = False
     sl.upsert(engine, source_table, {
         'resource_id': row['resource_id'],
         'retrieve_status': success,
-        'retrieve_hash': content_id,
-        'retrieve_message': message},
+        'retrieve_hash': content_id},
         unique=['resource_id'])
 
 def retrieve_all(force=False):

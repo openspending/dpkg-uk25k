@@ -43,13 +43,14 @@ def detect_format(values):
     scores = sorted(scores.items(), key=lambda (f,n): n)
     #print scores
     if not len(scores):
-        return Non
+        return None
     return scores[-1][0]
 
 def detect_formats(data):
     formats = {}
     for field in DATE_FIELDS:
-        values = [r.get(field, '').strip() for r in data]
+        values = [r.get(field) for r in data]
+        values = [v.strip() for v in values if v]
         formats[field] = detect_format(values)
     return formats
 

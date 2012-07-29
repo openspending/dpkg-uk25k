@@ -30,7 +30,7 @@ def cleanup_sheet(engine, row, sheet_id):
         row = cleanup_dates.apply(row, date_formats)
         row = cleanup_numbers.apply(row)
         row = cleanup_gov.apply(row)
-        row = cleanup_supplier.apply(row, engine)
+        #row = cleanup_supplier.apply(row, engine)
         sl.upsert(engine, spending_table, row,
                   unique=['id'])
     return True

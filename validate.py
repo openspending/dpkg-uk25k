@@ -20,7 +20,7 @@ def generate_signature(row):
         row.get('ExpenseType') or '',
         row.get('ExpenseArea') or '',
         unicode(row.get('TransactionNumber') or '')
-        ])
+        ]).encode('utf-8')
     return unicode(hashlib.sha256(sig).hexdigest())
 
 

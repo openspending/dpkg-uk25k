@@ -10,24 +10,29 @@ GOV_FIELDS = [
     ('DepartmentFamilyName', 'uk25k-departments')
     ]
 
+log = logging.getLogger('cleanup_gov')
+
 def apply(row):
     for field, dataset in GOV_FIELDS:
         out = field + 'Canonical'
         val = row.get(field)
-        if (dataset, val) in CACHE:
-            row[out] = CACHE[(dataset, val)]
-            continue
         try:
-            if val is None or not len(val):
+            if (dataset, val) in CACHE:
+                row[out] = CACHE[(dataset, val)]
+                continue
+            try:
+                if val is None or not len(val):
+                    row[out] = None
+                ds = nk_connect(dataset)
+                v = ds.lookup(val)
+                row[out] = v.value
+            except nk.NKInvalid:
                 row[out] = None
-            ds = nk_connect(dataset)
-            v = ds.lookup(val)
-            row[out] = v.value
-        except nk.NKInvalid:
-            row[out] = None
-        except nk.NKNoMatch:
-            row[out] = val
-        CACHE[(dataset, val)] = row[out]
+            except nk.NKNoMatch:
+                row[out] = val
+            CACHE[(dataset, val)] = row[out]
+        except Exception, e:
+            log.exception(e)
     return row
 
 

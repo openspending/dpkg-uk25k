@@ -29,22 +29,27 @@ def validate_sheet(engine, row, sheet_id):
     data = list(sl.find(engine, spending_table,
             resource_id=row['resource_id'],
             sheet_id=sheet_id))
+    connection = engine.connect()
+    trans = connection.begin()
+    try:
+        records = 0
+        for row in data:
+            result = {'id': row['id'], 'valid': True}
+            result['signature'] = generate_signature(row)
 
-    records = 0
-    for row in data:
-        result = {'id': row['id'], 'valid': True}
-        result['signature'] = generate_signature(row)
+            if row['DateFormatted'] is None:
+                result['valid'] = False
+            if row['AmountFormatted'] is None:
+                result['valid'] = False
 
-        if row['DateFormatted'] is None:
-            result['valid'] = False
-        if row['AmountFormatted'] is None:
-            result['valid'] = False
-
-        if result['valid']:
-            records += 1
-        sl.upsert(engine, spending_table, result,
-                  unique=['id'])
-    return records > 0
+            if result['valid']:
+                records += 1
+            sl.update(engine, spending_table,
+                      {'id': result['id']}, result)
+        trans.commit()
+        return records > 0
+    finally:
+        connection.close()
 
 def validate_resource(engine, source_table, row, force):
     if not row['cleanup_status']:

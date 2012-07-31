@@ -19,21 +19,30 @@ def cleanup_sheet(engine, row, sheet_id):
     data = list(sl.find(engine, spending_table,
             resource_id=row['resource_id'],
             sheet_id=sheet_id))
+    connection = engine.connect()
+    trans = connection.begin()
     date_formats = cleanup_dates.detect_formats(data)
-    if None in date_formats.values():
-        log.warn("Couldn't detect date formats: %r", date_formats)
-        issue(engine, row['resource_id'], row['retrieve_hash'],
-              "Couldn't detect date formats", repr(date_formats))
-        return False
+    try:
+        if None in date_formats.values():
+            log.warn("Couldn't detect date formats: %r", date_formats)
+            issue(engine, row['resource_id'], row['retrieve_hash'],
+                  "Couldn't detect date formats", repr(date_formats))
+            return False
 
-    for row in data:
-        row = cleanup_dates.apply(row, date_formats)
-        row = cleanup_numbers.apply(row)
-        row = cleanup_gov.apply(row)
-        #row = cleanup_supplier.apply(row, engine)
-        sl.upsert(engine, spending_table, row,
-                  unique=['id'])
-    return True
+        sl.delete(connection, spending_table,
+                  resource_id=row['resource_id'],
+                  sheet_id=sheet_id)
+        for row in data:
+            row = cleanup_dates.apply(row, date_formats)
+            row = cleanup_numbers.apply(row)
+            row = cleanup_gov.apply(row)
+            #row = cleanup_supplier.apply(row, engine)
+            del row['id']
+            sl.add_row(connection, spending_table, row)
+        trans.commit()
+        return True
+    finally:
+        connection.close()
 
 def cleanup_resource(engine, source_table, row, force):
     if not row['combine_status']:

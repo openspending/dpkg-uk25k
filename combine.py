@@ -55,24 +55,30 @@ def combine_sheet(engine, resource, sheet_id, table, mapping):
             'sheet_id': sheet_id,
         }
     spending_table = sl.get_table(engine, 'spending')
-    rows = 0
-    sl.delete(engine, spending_table,
-            resource_id=resource['resource_id'],
-            sheet_id=sheet_id)
-    for row in sl.all(engine, table):
-        data = dict(base)
-        for col, value in row.items():
-            if col == 'id':
-                data['row_id'] = value
-                continue
-            mapped = mapping.get(col)
-            if mapped is not None:
-                data[mapped] = value
-        sl.add_row(engine, spending_table, data)
-        rows += 1
-    log.info("Loaded %s rows in %s ms", rows,
-            int((time.time()-begin)*1000))
-    return rows > 0
+    connection = engine.connect()
+    trans = connection.begin()
+    try:
+        rows = 0
+        sl.delete(connection, spending_table,
+                resource_id=resource['resource_id'],
+                sheet_id=sheet_id)
+        for row in sl.all(connection, table):
+            data = dict(base)
+            for col, value in row.items():
+                if col == 'id':
+                    data['row_id'] = value
+                    continue
+                mapped = mapping.get(col)
+                if mapped is not None:
+                    data[mapped] = value
+            sl.add_row(connection, spending_table, data)
+            rows += 1
+        trans.commit()
+        log.info("Loaded %s rows in %s ms", rows,
+                int((time.time()-begin)*1000))
+        return rows > 0
+    finally:
+        connection.close()
 
 def combine_resource_core(engine, row):
     success = True

@@ -31,18 +31,23 @@ def column_mapping(row, columns):
         if column.startswith("column_"):
             mapping[column] = None
             continue
-        key = '%s @ [%s]' % (normalize(column), sheet_signature)
-        if key in KEY_CACHE:
-            mapping[column] = KEY_CACHE[key]
-            continue
         try:
-            v = nkc.lookup(key)
-            mapping[column] = v.value
-        except nk.NKInvalid, nm:
-            mapping[column] = None
-        except nk.NKNoMatch, nm:
+            key = '%s @ [%s]' % (normalize(column), sheet_signature)
+            if key in KEY_CACHE:
+                mapping[column] = KEY_CACHE[key]
+                continue
+            try:
+                v = nkc.lookup(key)
+                mapping[column] = v.value
+            except nk.NKInvalid, nm:
+                mapping[column] = None
+            except nk.NKNoMatch, nm:
+                failed = True
+            KEY_CACHE[key] = mapping.get(column)
+        except Exception, e:
+            log.exception(e)
             failed = True
-        KEY_CACHE[key] = mapping.get(column)
+            mapping[column] = None
     if not len([(k,v) for k,v in mapping.items() if v is not None]):
         return None
     return None if failed else mapping

@@ -43,6 +43,7 @@ def detect_format(values):
     scores = sorted(scores.items(), key=lambda (f,n): n)
     #print scores
     if not len(scores):
+        log.debug("Date Values: %r", set(values))
         return None
     return scores[-1][0]
 

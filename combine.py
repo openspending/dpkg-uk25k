@@ -21,6 +21,30 @@ def normalize(column_name):
     column_name = column_name.replace('No.', 'Number')
     return column_name.strip()
 
+def normalize_hard(column_name):
+    column_name = normalize(column_name)
+    column_name = column_name.replace('_', '')
+    column_name = column_name.replace('-', '')
+    column_name = column_name.lower().replace(' ', '')
+    return {
+        'amount': 'Amount',
+        'amountinsterling': 'Amount',
+        'departmentfamily': 'DepartmentFamilyName',
+        'departmentalfamily': 'DepartmentFamilyName',
+        'deptfamily': 'DepartmentFamilyName',
+        'date': 'Date',
+        'dateofpayment': 'Date',
+        'entity': 'EntityName',
+        'transactionnumber': 'TransactionNumber',
+        'transactionnr': 'TransactionNumber',
+        'transactionno': 'TransactionNumber',
+        'expensearea': 'ExpenseArea',
+        'expensetype': 'ExpenseType',
+        'expendituretype': 'ExpenditureType',
+        'supplier': 'SupplierName',
+        'suppliername': 'SupplierName'
+        }.get(column_name)
+
 def column_mapping(row, columns):
     nkc = nk_connect('uk25k-column-names')
     columns.remove('id')
@@ -32,6 +56,10 @@ def column_mapping(row, columns):
             mapping[column] = None
             continue
         try:
+            key = normalize_hard(column)
+            if key is not None:
+                mapping[column] = key
+                continue
             key = '%s @ [%s]' % (normalize(column), sheet_signature)
             if key in KEY_CACHE:
                 mapping[column] = KEY_CACHE[key]
@@ -90,7 +118,7 @@ def combine_resource_core(engine, row):
     for sheet_id in range(0, row['sheets']):
         table = sl.get_table(engine, 'raw_%s_sheet%s' % (
             row['resource_id'], sheet_id))
-        if not engine.has_table(table):
+        if not engine.has_table(table.name):
             log.warn("Sheet table does not exist: %s", table)
             success = False
             continue

@@ -35,7 +35,8 @@ def lookup(val, engine):
 
 def apply(row, engine):
     for field in SUPPLIER_FIELDS:
-        val = row.get(field, '').strip()
+        val = row.get(field) or ''
+        val = val.strip()
         if not len(val):
             row[field + 'Canonical'] = None
             row[field + 'URI'] = None

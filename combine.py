@@ -47,11 +47,14 @@ def normalize_hard(column_name):
         'expensetype': 'ExpenseType',
         'expensestype': 'ExpenseType',
         'expendituretype': 'ExpenditureType',
+        'description': 'Narrative',
+        'narrative': 'Narrative',
         'supplier': 'SupplierName',
         'suppliername': 'SupplierName',
         'suppliertype': 'SupplierType',
         'vatregistrationnumber': 'SupplierVATNumber',
         'supplierpostcode': 'SupplierPostalCode',
+        'postcode': 'SupplierPostalCode',
         'projectcode': 'ProjectCode'
         }.get(column_name)
 

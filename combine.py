@@ -29,20 +29,30 @@ def normalize_hard(column_name):
     return {
         'amount': 'Amount',
         'amountinsterling': 'Amount',
+        'gross': 'Amount',
         'departmentfamily': 'DepartmentFamilyName',
         'departmentalfamily': 'DepartmentFamilyName',
         'deptfamily': 'DepartmentFamilyName',
         'date': 'Date',
         'dateofpayment': 'Date',
+        'paymentdate': 'Date',
+        'transactiondate': 'Date',
         'entity': 'EntityName',
         'transactionnumber': 'TransactionNumber',
         'transactionnr': 'TransactionNumber',
         'transactionno': 'TransactionNumber',
+        'transno': 'TransactionNumber',
         'expensearea': 'ExpenseArea',
+        'expensesarea': 'ExpenseArea',
         'expensetype': 'ExpenseType',
+        'expensestype': 'ExpenseType',
         'expendituretype': 'ExpenditureType',
         'supplier': 'SupplierName',
-        'suppliername': 'SupplierName'
+        'suppliername': 'SupplierName',
+        'suppliertype': 'SupplierType',
+        'vatregistrationnumber': 'SupplierVATNumber',
+        'supplierpostcode': 'SupplierPostalCode',
+        'projectcode': 'ProjectCode'
         }.get(column_name)
 
 def column_mapping(row, columns):

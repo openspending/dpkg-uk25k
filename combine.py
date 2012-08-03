@@ -56,6 +56,7 @@ def normalize_hard(column_name):
         'suppliername': 'SupplierName',
         'suppliertype': 'SupplierType',
         'vatregistrationnumber': 'SupplierVATNumber',
+        'vatno': 'SupplierVATNumber',
         'supplierpostcode': 'SupplierPostalCode',
         'postcode': 'SupplierPostalCode',
         'projectcode': 'ProjectCode'

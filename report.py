@@ -10,6 +10,12 @@ log = logging.getLogger('report')
 templates = FileSystemLoader(os.path.join(os.path.dirname(__file__), 'templates'))
 env = Environment(loader=templates)
 
+def percentage(num, base=1):
+    n = (float(num)/float(base)) * 100
+    return str(int(n)) + '%'
+
+env.filters['pct'] = percentage
+
 def write_report(dest_dir, template, name, **kw):
     template = env.get_template(template)
     report = template.render(**kw)
@@ -52,14 +58,40 @@ def group_data(engine):
         group.update(stats.get(group.get('name'), {}))
         print [group['title']]
         yield group
-        #if i > 20:
-        #    break
+        if i > 20:
+            break
 
 def group_report(engine, dest_dir):
     groups = list(group_data(engine))
+    num = len(groups)
+    shows = filter(lambda g: g.get('num_sources', 0) > 0, groups)
+    valids = filter(lambda g: g.get('num_entries', 0) > 0, groups)
+    def within(groups, **kw):
+        def _wi(g):
+            latest = g.get('latest')
+            if not latest:
+                return False
+            latest = datetime.datetime.strptime(latest, "%Y-%M-%d")
+            return latest > datetime.datetime.now() - datetime.timedelta(**kw)
+        return filter(_wi, groups)
+
+    stats = {
+        'num': len(groups),
+        'numf': float(len(groups)),
+        'reported_ever': len(shows),
+        'reported_3m': len(within(shows, weeks=12)),
+        'reported_6m': len(within(shows, weeks=26)),
+        'reported_1y': len(within(shows, weeks=52)),
+        'valid_ever': len(valids),
+        'valid_3m': len(within(valids, weeks=12)),
+        'valid_6m': len(within(valids, weeks=26)),
+        'valid_1y': len(within(valids, weeks=52)),
+        }
+    pprint(stats)
     report_ts = datetime.datetime.utcnow().strftime("%B %d, %Y")
     write_report(dest_dir, 'publishers.html',
-            'index', groups=groups, report_ts=report_ts)
+            'index', groups=groups, stats=stats,
+            report_ts=report_ts)
 
 def resource_query(engine):
     data = {}
@@ -102,7 +134,7 @@ def create_report(dest_dir):
         os.makedirs(dest_dir)
     engine = db_connect()
     group_report(engine, dest_dir)
-    resource_report(engine, dest_dir)
+    #resource_report(engine, dest_dir)
 
 if __name__ == '__main__':
     import sys

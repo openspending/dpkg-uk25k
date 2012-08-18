@@ -1,0 +1,56 @@
+---
+title: Reporting on UK Spending Data Releases
+layout: gb
+---
+<style>
+  .num {
+    text-align:right;
+  }
+
+  .group_row {
+    background-color: #F2DEDE;
+  }
+
+  .group_row.has_sources {
+    background-color: #FCF8E3;
+  }
+
+  .group_row.has_sources.has_entries {
+    background-color: #DFF0D8;
+  }
+</style>
+
+<h2>
+  UK Departmental Spend Reporting
+  <small>{{report_ts}}</small>
+</h2>
+
+<table class="table table-condensed">
+  <tr>
+    <th>Publisher</th>
+    <th class="num">Reports</th>
+    <th class="num">Transactions</th>
+    <th class="num">Latest</th>
+    <th class="num">Total (GBP)</th>
+  </tr>
+  {% for group in groups %}
+  <tr class="
+    group_row
+    {{'has_sources' if group.num_sources else ''}}
+    {{'has_entries' if group.num_entries else ''}}
+    ">
+      <td>
+        {% if group.num_sources %}
+          <a href="publisher-{{group.name}}.html">{{group.title}}</a>
+        {% else %}
+          {{group.title}}
+        {% endif %}
+        (<a href="http://data.gov.uk/publisher/{{group.name}}">data.gov.uk</a>)
+      </td>
+      <td class="num">{{group.num_sources}}</td>
+      <td class="num">{{group.num_entries}}</td>
+      <td class="num">{{group.latest or ""}}</td>
+      <td class="num">{{group.total or ""}}</td>
+    </tr>
+  {% endfor %}
+</table>

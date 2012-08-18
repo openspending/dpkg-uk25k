@@ -7,6 +7,7 @@ from common import *
 log = logging.getLogger('build_index')
 
 TAGS = ['spend-transactions', '25000', '25k', 'Spending Data', 'transactions']
+TAGS = ['spend-transactions', '25k', '25000']
 GROUPS = {}
 
 def fetch_group(client, package):

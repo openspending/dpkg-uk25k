@@ -3,3 +3,5 @@
 nosetests.xml
 sources/*
 *~
+report/*
+*.DS_Store

@@ -68,16 +68,19 @@ def extract_resource_core(engine, row):
         elif source_data.startswith('PK'):
             table_set = XLSXTableSet(source_path(row))
         else:
-            fh.seek(0)
+            #fh.seek(0)
+            from StringIO import StringIO
+            sio = StringIO(source_data)
             #cd = chardet.detect(source_data)
             #fh.close()
             #fh = codecs.open(source_path(row), 'r', cd['encoding'] or 'utf-8')
-            table_set = CSVTableSet.from_fileobj(fh)
+            table_set = CSVTableSet.from_fileobj(sio)
 
         sheets = 0
         for sheet_id, row_set in enumerate(table_set.tables):
             offset, headers = headers_guess(row_set.sample)
             headers = map(convert_, headers)
+            log.debug("Headers: %r", headers)
             if len(headers) <= 1:
                 continue
             sheets += 1
@@ -139,3 +142,4 @@ def extract_all(force=False):
 
 if __name__ == '__main__':
     extract_all(False)
+

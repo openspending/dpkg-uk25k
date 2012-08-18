@@ -19,7 +19,11 @@ def fetch_group(client, package):
     return GROUPS[group_name]
 
 def fetch_package(client, package_name, engine, table):
-    pkg = client.package_entity_get(package_name)
+    try:
+        pkg = client.package_entity_get(package_name)
+    except Exception, e:
+        log.exception(e)
+        return
     log.info("Dataset: %s", pkg['name'])
     group = fetch_group(client, pkg)
     for res in pkg['resources']:

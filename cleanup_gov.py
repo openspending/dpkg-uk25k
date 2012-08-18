@@ -29,7 +29,7 @@ def apply(row):
             except nk.NKInvalid:
                 row[out] = None
             except nk.NKNoMatch:
-                row[out] = val
+                row[out] = None
             CACHE[(dataset, val)] = row[out]
         except Exception, e:
             log.exception(e)

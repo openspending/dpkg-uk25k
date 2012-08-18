@@ -18,6 +18,7 @@ def issue(engine, resource_id, resource_hash, message, data={}):
 
 def fix_url(url):
     # The correct character set for URLs is "broken". This is probably close enough.
+    url = url.strip()
     if isinstance(url, unicode):
         url = url.encode('utf-8', 'ignore')
     scheme, netloc, path, qs, anchor = urlparse.urlsplit(url)
@@ -41,7 +42,7 @@ def retrieve(row, engine, source_table, force):
                            verify=False, timeout=30.0)
         success = res.ok
         if success:
-            data = res.raw.read()
+            data = res.content
             content_id = hashlib.sha256(data).hexdigest()
             fh = open(source_path(row), 'wb')
             fh.write(data)
@@ -68,3 +69,4 @@ def retrieve_all(force=False):
 
 if __name__ == '__main__':
     retrieve_all()
+

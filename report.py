@@ -58,34 +58,47 @@ def group_data(engine):
         group.update(stats.get(group.get('name'), {}))
         print [group['title']]
         yield group
-     #   if i > 20:
-     #       break
+        #if i > 20:
+        #    break
 
 def group_report(engine, dest_dir):
     groups = list(group_data(engine))
     num = len(groups)
     shows = filter(lambda g: g.get('num_sources', 0) > 0, groups)
     valids = filter(lambda g: g.get('num_entries', 0) > 0, groups)
-    def within(groups, **kw):
+    cover = filter(lambda g: g.get('num_entries', 0) > 0, groups)
+    def within(groups, field, format_, **kw):
         def _wi(g):
-            latest = g.get('latest')
-            if not latest:
+            dt = g.get(field)
+            if not dt:
                 return False
-            latest = datetime.datetime.strptime(latest, "%Y-%M-%d")
-            return latest > datetime.datetime.now() - datetime.timedelta(**kw)
+            dt = dt.rsplit('.', 1)[0]
+            dt = datetime.datetime.strptime(dt, format_)
+            ref = datetime.datetime.now() - datetime.timedelta(**kw)
+            return dt > ref
         return filter(_wi, groups)
-
+    
+    def within_m(groups, **kw):
+        return within(groups, 'last_modified', '%Y-%m-%dT%H:%M:%S', **kw)
+    
+    def within_c(groups, **kw):
+        return within(groups, 'latest', '%Y-%M-%d', **kw)
+    
     stats = {
         'num': len(groups),
         'numf': float(len(groups)),
         'reported_ever': len(shows),
-        'reported_3m': len(within(shows, weeks=12)),
-        'reported_6m': len(within(shows, weeks=26)),
-        'reported_1y': len(within(shows, weeks=52)),
+        'reported_3m': len(within_m(shows, weeks=12)),
+        'reported_6m': len(within_m(shows, weeks=26)),
+        'reported_1y': len(within_m(shows, weeks=52)),
         'valid_ever': len(valids),
-        'valid_3m': len(within(valids, weeks=12)),
-        'valid_6m': len(within(valids, weeks=26)),
-        'valid_1y': len(within(valids, weeks=52)),
+        'valid_3m': len(within_m(valids, weeks=12)),
+        'valid_6m': len(within_m(valids, weeks=26)),
+        'valid_1y': len(within_m(valids, weeks=52)),
+        'cover_ever': len(valids),
+        'cover_3m': len(within_c(valids, weeks=12)),
+        'cover_6m': len(within_c(valids, weeks=26)),
+        'cover_1y': len(within_c(valids, weeks=52)),
         }
     pprint(stats)
     report_ts = datetime.datetime.utcnow().strftime("%B %d, %Y")

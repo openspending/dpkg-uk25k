@@ -58,8 +58,8 @@ def group_data(engine):
         group.update(stats.get(group.get('name'), {}))
         print [group['title']]
         yield group
-        if i > 20:
-            break
+     #   if i > 20:
+     #       break
 
 def group_report(engine, dest_dir):
     groups = list(group_data(engine))
@@ -134,7 +134,7 @@ def create_report(dest_dir):
         os.makedirs(dest_dir)
     engine = db_connect()
     group_report(engine, dest_dir)
-    #resource_report(engine, dest_dir)
+    resource_report(engine, dest_dir)
 
 if __name__ == '__main__':
     import sys

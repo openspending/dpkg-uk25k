@@ -47,7 +47,7 @@ def build_index():
     engine, table = connect()
     tags = ['+tags:"%s"' % t for t in TAGS]
     client = CkanClient(base_location='http://data.gov.uk/api')
-    res = client.package_search(" ".join(tags),
+    res = client.package_search(" OR ".join(tags),
             search_options={'limit': 5})
     for package_name in res['results']:
         fetch_package(client, package_name, engine, table)

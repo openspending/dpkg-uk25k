@@ -6,6 +6,7 @@ from common import *
 
 log = logging.getLogger('build_index')
 
+TAGS = ['spend-transactions', '25000', '25k', 'Spending Data', 'transactions']
 GROUPS = {}
 
 def fetch_group(client, package):
@@ -44,8 +45,9 @@ def connect():
 
 def build_index():
     engine, table = connect()
+    tags = ['+tags:"%s"' % t for t in TAGS]
     client = CkanClient(base_location='http://data.gov.uk/api')
-    res = client.package_search("tags:spend-transactions",
+    res = client.package_search(" ".join(tags),
             search_options={'limit': 5})
     for package_name in res['results']:
         fetch_package(client, package_name, engine, table)

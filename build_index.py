@@ -22,12 +22,13 @@ def fetch_package(client, package_name, engine, table):
     log.info("Dataset: %s", pkg['name'])
     group = fetch_group(client, pkg)
     for res in pkg['resources']:
-        log.info(" > Resource %s", res['url'])
+        log.info(" > Resource %s: %s", res['id'], res['url'])
         sl.upsert(engine, table, {
             'resource_id': res['id'],
             'package_id': pkg['id'],
             'package_name': pkg['name'],
             'package_title': pkg['title'],
+            'last_modified': res.get('last_modified'),
             'url': res['url'],
             'publisher_name': group.get('name'),
             'publisher_title': group.get('title'),

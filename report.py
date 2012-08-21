@@ -149,7 +149,7 @@ def create_report(dest_dir):
     if not os.path.isdir(dest_dir):
         os.makedirs(dest_dir)
     engine = db_connect()
-    #group_report(engine, dest_dir)
+    group_report(engine, dest_dir)
     resource_report(engine, dest_dir)
 
 if __name__ == '__main__':

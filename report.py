@@ -32,8 +32,9 @@ def all_groups():
 def group_query(engine):
     stats = {}
     q = """
-        SELECT 
+        SELECT
             src.publisher_name AS name,
+            MAX(src.last_modified) AS last_modified,
             COUNT(DISTINCT src.id) AS num_sources,
             COUNT(spe.id) AS num_entries,
             SUM(spe."AmountFormatted") AS total,
@@ -58,8 +59,8 @@ def group_data(engine):
         group.update(stats.get(group.get('name'), {}))
         print [group['title']]
         yield group
-        #if i > 20:
-        #    break
+        if i > 20:
+            break
 
 def group_report(engine, dest_dir):
     groups = list(group_data(engine))

@@ -44,7 +44,7 @@ def validate_sheet(engine, row, sheet_id):
 
             if result['valid']:
                 records += 1
-            sl.update(engine, spending_table,
+            sl.update(connection, spending_table,
                       {'id': result['id']}, result)
         trans.commit()
         return records > 0

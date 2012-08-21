@@ -40,6 +40,8 @@ def generate_all():
         if row['signature'] in signatures:
             continue
         signatures.add(row['signature'])
+        if not row['resource_id'] in sources:
+            continue
         row.update(sources[row['resource_id']])
         row.pop('valid', True)
         row.pop('row_id', True)

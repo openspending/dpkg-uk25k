@@ -123,9 +123,11 @@ def resource_query(engine):
         """
     r = engine.execute(q)
     for res in sl.resultiter(r):
-        res['issues'] = list(sl.resultiter(engine.execute(
+        issues = list(sl.resultiter(engine.execute(
             """ SELECT message, stage FROM issue WHERE resource_id = '%s' AND resource_hash = '%s'
                 ORDER BY timestamp DESC """ % (res['resource_id'], res['retrieve_hash']))))
+        issues = set([(i['stage'], i['message']) for i in issues])
+        res['issues'] = issues
         pn = res['publisher_name']
         if pn is None:
             continue
@@ -147,7 +149,7 @@ def create_report(dest_dir):
     if not os.path.isdir(dest_dir):
         os.makedirs(dest_dir)
     engine = db_connect()
-    group_report(engine, dest_dir)
+    #group_report(engine, dest_dir)
     resource_report(engine, dest_dir)
 
 if __name__ == '__main__':

@@ -8,8 +8,9 @@ layout: gb
     text-align:right;
   }
 
-  .bool.False {
+  .bool.False a {
     color: #B94A48;
+    text-decoration: none;
   }
 
   .bool.None {
@@ -21,12 +22,12 @@ layout: gb
   }
 </style>
 
-{% macro showbool(value) -%}
+{% macro showbool(resource, value, stage) -%}
   <span class="bool {{value}}">
   {% if value %}
     &#x2714;
   {% else %}
-    &#x2718;
+  <a href="#issues-{{resource}}">&#x2718;</a>
   {% endif %}
   </span>
 {%- endmacro %}
@@ -59,19 +60,19 @@ layout: gb
           <a href="http://data.gov.uk/dataset/{{pres.grouper}}/resource/{{res['resource_id']}}">{{res['description'] or res['url'] | truncate(length=100) }}</a>
         </td>
         <td>
-          {{showbool(res.retrieve_status)}}
+          {{showbool(res.resource_id, res.retrieve_status, 'retrieve')}}
         </td>
         <td>
-          {{showbool(res.extract_status)}}
+          {{showbool(res.resource_id, res.extract_status, 'extract')}}
         </td>
         <td>
-          {{showbool(res.combine_status)}}
+          {{showbool(res.resource_id, res.combine_status, 'combine')}}
         </td>
         <td>
-          {{showbool(res.cleanup_status)}}
+          {{showbool(res.resource_id, res.cleanup_status, 'cleanup')}}
         </td>
         <td>
-          {{showbool(res.validate_status)}}
+          {{showbool(res.resource_id, res.validate_status, 'validate')}}
         </td>
         <td class="num">
           {{res.num_entries}}
@@ -87,5 +88,35 @@ layout: gb
         </td>
       </tr>
     {% endfor %}
+  {% endfor %}
+</table>
+
+<hr/>
+<h3>Error details</h3>
+<table class="table table-condensed table-bordered">
+  <tr>
+    <td colspan="2">
+      Resource/Stage
+    </td>
+    <td>
+      Error
+    </td>
+  </tr>
+  {% for res in resources %}
+    {% if res.issues %}
+      <tr>
+        <td colspan="3">
+          <a name="issues-{{res.resource_id}}"></a>
+          <a href="http://data.gov.uk/dataset/{{res.package_name}}/resource/{{res.resource_id}}">{{res.description or res.url | truncate(length=100) }}</a>
+        </td>
+      </tr>
+      {% for stage, message in res.issues %}
+        <tr>
+          <td></td>
+          <td><span class="label label-info">{{stage}}</a></td>
+          <td>{{message}}</td>
+        </tr>
+      {% endfor %}
+    {% endif %}
   {% endfor %}
 </table>

@@ -83,7 +83,7 @@ def group_report(engine, dest_dir):
         return within(groups, 'last_modified', '%Y-%m-%dT%H:%M:%S', **kw)
     
     def within_c(groups, **kw):
-        return within(groups, 'latest', '%Y-%M-%d', **kw)
+        return within(groups, 'latest', '%Y-%m-%d', **kw)
     
     stats = {
         'num': len(groups),

@@ -15,7 +15,7 @@ layout: gb
     background-color: #FCF8E3;
   }
 
-  .group_row.has_sources.has_entries {
+  .group_row.has_sources.top_class {
     background-color: #DFF0D8;
   }
 </style>
@@ -79,6 +79,7 @@ layout: gb
     group_row
     {{'has_sources' if group.num_sources else ''}}
     {{'has_entries' if group.num_entries else ''}}
+    {{'top_class' if group.top_class else ''}}
     ">
       <td>
         {% if group.num_sources %}

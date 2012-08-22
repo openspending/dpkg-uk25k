@@ -18,7 +18,8 @@ env.filters['pct'] = percentage
 
 def write_report(dest_dir, template, name, **kw):
     template = env.get_template(template)
-    report = template.render(**kw)
+    report_ts = datetime.datetime.utcnow().strftime("%B %d, %Y")
+    report = template.render(report_ts=report_ts, **kw)
     with open(os.path.join(dest_dir, name + '.html'), 'wb') as fh:
         fh.write(report.encode('utf-8'))
 
@@ -47,10 +48,12 @@ def group_query(engine):
         """
     r = engine.execute(q)
     for res in sl.resultiter(r):
+        res['top_class'] = False
+        if res['latest']:
+            dt = datetime.datetime.strptime(res['latest'], "%Y-%m-%d")
+            ref = datetime.datetime.now() - datetime.timedelta(weeks=12)
+            res['top_class'] = dt > ref
         stats[res['name']] = res
-    r = engine.execute(q)
-    for res in sl.resultiter(r):
-        stats[res['name']].update(res)
     return stats
 
 def group_data(engine):
@@ -102,10 +105,8 @@ def group_report(engine, dest_dir):
         'cover_1y': len(within_c(valids, weeks=52)),
         }
     pprint(stats)
-    report_ts = datetime.datetime.utcnow().strftime("%B %d, %Y")
     write_report(dest_dir, 'publishers.html',
-            'index', groups=groups, stats=stats,
-            report_ts=report_ts)
+            'index', groups=groups, stats=stats)
 
 def resource_query(engine):
     data = {}

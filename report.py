@@ -25,8 +25,12 @@ def write_report(dest_dir, template, name, **kw):
 
 def all_groups():
     client = CkanClient(base_location='http://data.gov.uk/api')
+    #client = CkanClient(base_location='http://co-dev1.dh.bytemark.co.uk/api')
     for name in client.group_register_get():
         group = client.group_entity_get(name)
+        group['spending_published_by'] = group.get('extras').get('spending_published_by')
+        group['category'] = group.get('extras').get('category')
+        group['must_report'] = group['category'] in ['core-department']
         #group['type']
         yield group
 
@@ -66,11 +70,14 @@ def group_data(engine):
         #    break
 
 def group_report(engine, dest_dir):
-    groups = list(group_data(engine))
-    num = len(groups)
-    shows = filter(lambda g: g.get('num_sources', 0) > 0, groups)
-    valids = filter(lambda g: g.get('num_entries', 0) > 0, groups)
-    cover = filter(lambda g: g.get('num_entries', 0) > 0, groups)
+    _all_groups = list(group_data(engine))
+    by_names = dict([(g['name'], g['title']) for g in _all_groups])
+    req_groups = filter(lambda g: g['must_report'], _all_groups)
+    nonreq_groups = filter(lambda g: not g['must_report'], _all_groups)
+    num = len(req_groups)
+    shows = filter(lambda g: g.get('num_sources', 0) > 0, req_groups)
+    valids = filter(lambda g: g.get('num_entries', 0) > 0, req_groups)
+    cover = filter(lambda g: g.get('num_entries', 0) > 0, req_groups)
     def within(groups, field, format_, **kw):
         def _wi(g):
             dt = g.get(field)
@@ -89,8 +96,8 @@ def group_report(engine, dest_dir):
         return within(groups, 'latest', '%Y-%m-%d', **kw)
     
     stats = {
-        'num': len(groups),
-        'numf': float(len(groups)),
+        'num': len(req_groups),
+        'numf': float(len(req_groups)),
         'reported_ever': len(shows),
         'reported_3m': len(within_m(shows, weeks=12)),
         'reported_6m': len(within_m(shows, weeks=26)),
@@ -106,7 +113,11 @@ def group_report(engine, dest_dir):
         }
     pprint(stats)
     write_report(dest_dir, 'publishers.html',
-            'index', groups=groups, stats=stats)
+            'index', req_groups=req_groups,
+            all_groups=_all_groups,
+            by_names=by_names,
+            nonreq_groups=nonreq_groups,
+            stats=stats)
 
 def resource_query(engine):
     data = {}

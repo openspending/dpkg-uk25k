@@ -2,9 +2,42 @@
 title: Reporting on UK Spending Data Releases
 layout: gb
 ---
+
+{% macro render_group(group, extraclass) %}
+  <tr class="
+    group_row {{extraclass}}
+    {{'has_sources' if group.num_sources else ''}}
+    {{'has_entries' if group.num_entries else ''}}
+    {{'top_class' if group.top_class else ''}}
+    {{'reported_elsewehre' if group.spending_published_by else ''}}
+    ">
+      <td>
+        {% if group.num_sources %}
+          <a href="publisher-{{group.name}}.html">{{group.title}}</a>
+        {% else %}
+          {{group.title}}
+        {% endif %}
+        (<a href="http://data.gov.uk/publisher/{{group.name}}">data.gov.uk</a>)
+      </td>
+      {% if group.spending_published_by %}
+        <td colspan="4" class="reference">published by
+          <a href="publisher-{{group.spending_published_by}}.html">{{by_names[group.spending_published_by]}}</a></td>
+      {% else %}
+        <td class="num">{{group.num_sources}}</td>
+        <td class="num">{{group.num_entries}}</td>
+        <td class="num">{{group.latest or ""}}</td>
+        <td class="num">{{group.total or ""}}</td>
+      {% endif %}
+    </tr>
+{% endmacro %}
+
 <style>
   .num {
     text-align:right;
+  }
+
+  .reference {
+    font-style: italic;
   }
 
   .group_row {
@@ -17,6 +50,12 @@ layout: gb
 
   .group_row.has_sources.top_class {
     background-color: #DFF0D8;
+  }
+
+  .group_row.reported_elsewehre,
+  .group_row.reported_elsewehre.has_sources,
+  .group_row.reported_elsewehre.has_sources.top_class {
+    background-color: white !important;
   }
 </style>
 
@@ -74,25 +113,20 @@ layout: gb
     <th class="num">Latest</th>
     <th class="num">Total (GBP)</th>
   </tr>
-  {% for group in groups %}
-  <tr class="
-    group_row
-    {{'has_sources' if group.num_sources else ''}}
-    {{'has_entries' if group.num_entries else ''}}
-    {{'top_class' if group.top_class else ''}}
-    ">
-      <td>
-        {% if group.num_sources %}
-          <a href="publisher-{{group.name}}.html">{{group.title}}</a>
-        {% else %}
-          {{group.title}}
-        {% endif %}
-        (<a href="http://data.gov.uk/publisher/{{group.name}}">data.gov.uk</a>)
-      </td>
-      <td class="num">{{group.num_sources}}</td>
-      <td class="num">{{group.num_entries}}</td>
-      <td class="num">{{group.latest or ""}}</td>
-      <td class="num">{{group.total or ""}}</td>
-    </tr>
+  <tr class="voluntary">
+    <th colspan="5">
+      Publishers that are required to report monthly expenditure (Core Departments)
+    </th>
+  </tr>
+  {% for group in req_groups %}
+    {{ render_group(group, 'required') }}
+  {% endfor %}
+  <tr class="voluntary">
+    <th colspan="5">
+      Other publishers, reporting spending on a voluntary basis.
+    </td>
+  </tr>
+  {% for group in nonreq_groups %}
+    {{ render_group(group, 'voluntary') }}
   {% endfor %}
 </table>

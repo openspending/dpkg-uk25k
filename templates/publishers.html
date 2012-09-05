@@ -40,15 +40,18 @@ layout: gb
     font-style: italic;
   }
 
-  .group_row {
+  .group_row,
+  .tdbad {
     background-color: #F2DEDE;
   }
 
-  .group_row.has_sources {
+  .group_row.has_sources,
+  .tdmedium {
     background-color: #FCF8E3;
   }
 
-  .group_row.has_sources.top_class {
+  .group_row.has_sources.top_class,
+  .tdgood {
     background-color: #DFF0D8;
   }
 
@@ -82,24 +85,24 @@ layout: gb
       </tr>
       <tr>
         <th>Reported anything</th>
-        <td>{{stats.reported_ever}} ({{stats.reported_ever|pct(stats.numf)}})</td>
-        <td>{{stats.reported_1y}} ({{stats.reported_1y|pct(stats.numf)}})</td>
-        <td>{{stats.reported_6m}} ({{stats.reported_6m|pct(stats.numf)}})</td>
-        <td>{{stats.reported_3m}} ({{stats.reported_3m|pct(stats.numf)}})</td>
+        <td class="tdbad">{{stats.reported_ever}} ({{stats.reported_ever|pct(stats.numf)}})</td>
+        <td class="tdmedium">{{stats.reported_1y}} ({{stats.reported_1y|pct(stats.numf)}})</td>
+        <td class="tdmedium">{{stats.reported_6m}} ({{stats.reported_6m|pct(stats.numf)}})</td>
+        <td class="tdmedium">{{stats.reported_3m}} ({{stats.reported_3m|pct(stats.numf)}})</td>
       </tr>
       <tr>
         <th>Reported valid data</th>
-        <td>{{stats.valid_ever}} ({{stats.valid_ever|pct(stats.numf)}})</td>
-        <td>{{stats.valid_1y}} ({{stats.valid_1y|pct(stats.numf)}})</td>
-        <td>{{stats.valid_6m}} ({{stats.valid_6m|pct(stats.numf)}})</td>
-        <td>{{stats.valid_3m}} ({{stats.valid_3m|pct(stats.numf)}})</td>
+        <td class="tdmedium">{{stats.valid_ever}} ({{stats.valid_ever|pct(stats.numf)}})</td>
+        <td class="tdmedium">{{stats.valid_1y}} ({{stats.valid_1y|pct(stats.numf)}})</td>
+        <td class="tdmedium">{{stats.valid_6m}} ({{stats.valid_6m|pct(stats.numf)}})</td>
+        <td class="tdmedium">{{stats.valid_3m}} ({{stats.valid_3m|pct(stats.numf)}})</td>
       </tr>
       <tr>
         <th>Periods covered</th>
-        <td>{{stats.cover_ever}} ({{stats.cover_ever|pct(stats.numf)}})</td>
-        <td>{{stats.cover_1y}} ({{stats.cover_1y|pct(stats.numf)}})</td>
-        <td>{{stats.cover_6m}} ({{stats.cover_6m|pct(stats.numf)}})</td>
-        <td>{{stats.cover_3m}} ({{stats.cover_3m|pct(stats.numf)}})</td>
+        <td class="tdmedium">{{stats.cover_ever}} ({{stats.cover_ever|pct(stats.numf)}})</td>
+        <td class="tdmedium">{{stats.cover_1y}} ({{stats.cover_1y|pct(stats.numf)}})</td>
+        <td class="tdmedium">{{stats.cover_6m}} ({{stats.cover_6m|pct(stats.numf)}})</td>
+        <td class="tdgood">{{stats.cover_3m}} ({{stats.cover_3m|pct(stats.numf)}})</td>
       </tr>
     </table>
   </div>

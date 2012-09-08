@@ -3,19 +3,19 @@ title: Reporting on UK Spending Data Releases
 layout: gb
 ---
 <style>
-  .num {
+  td.num, th.num {
     text-align:right;
   }
 
-  .group_row {
+  .traffic-lights .no_sources{
     background-color: #F2DEDE;
   }
 
-  .group_row.has_sources {
+  .traffic-lights .has_sources {
     background-color: #FCF8E3;
   }
 
-  .group_row.has_sources.top_class {
+  .traffic-lights .top_class {
     background-color: #DFF0D8;
   }
 </style>
@@ -26,73 +26,70 @@ layout: gb
 </h2>
 
 <div class="row">
-  <div class="span4">
-    Every body of the UK central government is held to report its
+  <div class="span6">
+    Every body of the UK central government is required to report its
     transactional expenditure once a month. This table lists all 
-    public bodies registered as data publishers on data.gov.uk 
-    and details how they have followed these reporting guidelines.
+    Core Government departments and shows how up-to-date their spending
+    reports are on data.gov.uk.
   </div>
-  <div class="span8">
-    <table class="table table-condensed">
+  <div class="span5">
+    <h3>Overall statistics</h3>
+    <table class="table table-condensed traffic-lights">
       <tr>
-        <th></th>
-        <th>Ever</th>
-        <th>Last year</th>
-        <th>Last six months</th>
-        <th>Last three months</th>
+        <td>{{stats.num}}</td>
+        <td>core departments</td>
       </tr>
-      <tr>
-        <th>Reported anything</th>
-        <td>{{stats.reported_ever}} ({{stats.reported_ever|pct(stats.numf)}})</td>
-        <td>{{stats.reported_1y}} ({{stats.reported_1y|pct(stats.numf)}})</td>
-        <td>{{stats.reported_6m}} ({{stats.reported_6m|pct(stats.numf)}})</td>
-        <td>{{stats.reported_3m}} ({{stats.reported_3m|pct(stats.numf)}})</td>
-      </tr>
-      <tr>
-        <th>Reported valid data</th>
-        <td>{{stats.valid_ever}} ({{stats.valid_ever|pct(stats.numf)}})</td>
-        <td>{{stats.valid_1y}} ({{stats.valid_1y|pct(stats.numf)}})</td>
-        <td>{{stats.valid_6m}} ({{stats.valid_6m|pct(stats.numf)}})</td>
-        <td>{{stats.valid_3m}} ({{stats.valid_3m|pct(stats.numf)}})</td>
-      </tr>
-      <tr>
-        <th>Periods covered</th>
-        <td>{{stats.cover_ever}} ({{stats.cover_ever|pct(stats.numf)}})</td>
-        <td>{{stats.cover_1y}} ({{stats.cover_1y|pct(stats.numf)}})</td>
-        <td>{{stats.cover_6m}} ({{stats.cover_6m|pct(stats.numf)}})</td>
+      <tr class="top_class">
         <td>{{stats.cover_3m}} ({{stats.cover_3m|pct(stats.numf)}})</td>
+        <td class="js-tooltip" title="Transactions published in the past 3 months">Up-to-date <img src="/images/information-grey.png"/></td>
+      </tr>
+      <tr class="has_sources">
+        <td>{{stats.cover_ever - stats.cover_3m}} ({{(stats.cover_ever - stats.cover_3m)|pct(stats.numf)}})</td>
+        <td class="js-tooltip" title="Transactions published, but not in the past 3 months">Has past data <img src="/images/information-grey.png"/></td>
+      </tr>
+      <tr class="no_sources">
+        <td>{{stats.num - stats.cover_ever}} ({{(stats.num - stats.cover_ever)|pct(stats.numf)}})</td>
+        <td class="js-tooltip" title="No transactions published correctly on data.gov.uk">No data <img src="/images/information-grey.png"/></td>
       </tr>
     </table>
   </div>
 </div>
 
-<table class="table table-condensed">
-  <tr>
-    <th>Publisher</th>
-    <th class="num">Reports</th>
-    <th class="num">Entries</th>
-    <th class="num">Latest</th>
-    <th class="num">Total (GBP)</th>
-  </tr>
-  {% for group in groups %}
-  <tr class="
-    group_row
-    {{'has_sources' if group.num_sources else ''}}
-    {{'has_entries' if group.num_entries else ''}}
-    {{'top_class' if group.top_class else ''}}
-    ">
+<table class="table table-condensed tablesorter" id="publishers-table">
+  <thead>
+    <tr>
+      <th>Publisher</th>
+      <th>Status</th>
+      <th class="num js-tooltip" title="The number of spreadsheet files with spend transactions. They must be published on data.gov.uk correctly tagged and the spreadsheet must be correctly formatted.">Files <img src="/images/information-grey.png"/></th>
+      <th class="num js-tooltip" title="Number of spend transactions">Transactions <img src="/images/information-grey.png"/></th>
+      <th class="num js-tooltip" title="Date of the most recent spend transaction reported">Latest <img src="/images/information-grey.png"/></th>
+      <th class="num js-tooltip" title="Total value of the spend transactions reported">Total (&pound;) <img src="/images/information-grey.png"/></th>
+    </tr>
+  </thead>
+  <tbody>
+   {% for group in groups %}
+   <tr class="traffic-lights">
       <td>
         {% if group.num_sources %}
-          <a href="publisher-{{group.name}}.html">{{group.title}}</a>
+          <a href="publisher-{{group.name}}.html">{{group.title|e}}</a>
         {% else %}
-          {{group.title}}
+          {{group.title|e}}
         {% endif %}
-        (<a href="http://data.gov.uk/publisher/{{group.name}}">data.gov.uk</a>)
+        (<a href="http://data.gov.uk/publisher/{{group.name}}">publisher page</a>)
       </td>
+      {% if group.top_class %}
+        <td class="top_class" sort="1">Up-to-date</td>
+      {% elif group.num_entries %}
+        <td class="has_sources" sort="2">Has past data</td>
+      {% else %}
+        <td class="no_sources" sort="3">No data</td>
+      {% endif %}
       <td class="num">{{group.num_sources}}</td>
       <td class="num">{{group.num_entries}}</td>
-      <td class="num">{{group.latest or ""}}</td>
-      <td class="num">{{group.total or ""}}</td>
+      <td class="num">{{group.latest|british_date or ""}}</td>
+      <td class="num">{{group.total|currency_format}}</td>
     </tr>
-  {% endfor %}
+   {% endfor %}
+  </tbody>
+  <p>Some of the smaller organisations have very few transactions over £25k and subsequently only publish data for the month if this criteria has been met.</p>
 </table>

@@ -14,25 +14,65 @@ The scripts have several stages that need to be run in order:
   spend-transactions) on data.gov.uk
 * ``retrieve`` will then try to fetch all the files
 * ``extract`` will attempt to parse CSV/XLS/... and load it into a DB
-* ``scan_columns`` will do some initial processing for later stages
-* ``map_columns`` will outsource column name comprehension to the user
-* ``condense`` will try to establish a common column schema
-* ``format`` will try to munge numbers and dates
-* ``suppliers`` will query opencorporates.org for supplier name resolution
-* ``export`` will write a csv
+* ``combine``
+* ``cleanup``
+* ``validate``
+* ``report`` creates the report HTML
+
+
+Setup
+-----
+
+First clone this repo::
+
+  git clone https://github.com/okfn/dpkg-uk25k.git
+
+You need to install the dependencies (best in a python virtual environment)::
+
+  virtualenv pyenv-dpkg-uk25k
+  pyenv-dpkg-uk25k/bin/pip install -r requirements.txt
+
+The default configuration is in ``default.ini``. If you want to change the configuration, copy it ``config.ini`` and edit it there.
+
+Before you can run the scripts you need to prepare a database::
+
+  sudo -u postgres createdb uk25k
+
+Now create a postgres user for your unix user name::
+
+  sudo -u postgres createuser -D -R -S $USER
+
+And allow access to the database by editing /etc/postgresql/9.1/main/pg_hba.conf and adding this line::
+
+  local uk25k all trust
+
+Now restart postgres::
+
+  sudo service postgresql restart
 
 
 Running the scripts
 -------------------
 
-To run some of the scripts, use ``nosetests`` (the scripts are tests). 
-Adding -v will give you the names of the individual stages, -x will 
-stop on the first error and --with-xunit will generate an XML log file.
+Run the scripts like this::
 
-These scripts are: build_index, retrieve, extract, condense, format
+  . pyenv-dpkg-uk25k/bin/activate
+  cd dpkg-uk25k
+  python build_index.py
+  python retrieve.py
+  python extract.py
+  python combine.py
+  python cleanup.py
+  python validate.py
+  python report.py reports
 
-The other scripts can simply be run directly
+Before running the scripts again, be sure to clear out old data from the issues table
+or from all tables like this::
 
+  sudo -u postgres dropdb uk25k
+  sudo -u postgres createdb uk25k
+
+To limit the 
 
 Open Issues
 -----------
@@ -43,4 +83,4 @@ Punted
 ------
 
 * PDFs
-* Zip files containing a bunch of CSVs
+* Zip files containing a bunch of CSVs (potentially for a number of publishers)

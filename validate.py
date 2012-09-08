@@ -31,16 +31,28 @@ def validate_sheet(engine, row, sheet_id):
             sheet_id=sheet_id))
     connection = engine.connect()
     trans = connection.begin()
+    issue_noted_for_this_resource = False # record first failure only
     try:
         records = 0
-        for row in data:
-            result = {'id': row['id'], 'valid': True}
-            result['signature'] = generate_signature(row)
+        for row_ in data:
+            result = {'id': row_['id'], 'valid': True}
+            result['signature'] = generate_signature(row_)
 
-            if row['DateFormatted'] is None:
+            if row_['DateFormatted'] is None:
                 result['valid'] = False
-            if row['AmountFormatted'] is None:
+                if not issue_noted_for_this_resource:
+                    issue(engine, row['resource_id'], row['retrieve_hash'],
+                          'Date invalid (or possible the date format is inconsistent)',
+                          {'row_id': row_.get('row_id'),
+                           'Date': row_.get('Date')})
+                    issue_noted_for_this_resource = True
+            if row_['AmountFormatted'] is None:
                 result['valid'] = False
+                if not issue_noted_for_this_resource:
+                    issue(engine, row['resource_id'], row['retrieve_hash'],
+                          'Amount invalid', {'row_id': row_.get('row_id'),
+                                             'Amount': row_.get('Amount')})
+                    issue_noted_for_this_resource = True
 
             if result['valid']:
                 records += 1

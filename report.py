@@ -1,13 +1,16 @@
 from pprint import pprint
 import sqlaload as sl
 import os
+import sys
 
 from jinja2 import FileSystemLoader, Environment
-from ckanclient import CkanClient
 from common import *
 
 log = logging.getLogger('report')
 templates = FileSystemLoader(os.path.join(os.path.dirname(__file__), 'templates'))
+
+# Jinja filters setup
+
 env = Environment(loader=templates)
 
 def percentage(num, base=1):
@@ -15,6 +18,45 @@ def percentage(num, base=1):
     return str(int(n)) + '%'
 
 env.filters['pct'] = percentage
+
+def british_date(value):
+    if not value:
+        return ''
+    y, m, d = value.split('-')
+    return '%s/%s/%s' % (d, m, y)
+env.filters['british_date'] = british_date
+
+def currency_format(value):
+    ''' 12345.67 -> 12,345 '''
+    if not value:
+        return ''
+    return '{:,.0f}'.format(value)
+env.filters['currency_format'] = currency_format
+
+stage_name_mapping = {
+    'retrieve': 'Download',
+    'extract': 'Format',
+    'combine': 'Columns',
+    'cleanup': 'Data',
+    'validate': 'Valid',
+    }
+def stage_name_map(stage_name):
+    '''Maps what the stage name from what this software calls it
+    to the name the user sees.'''
+    return stage_name_mapping[stage_name]
+env.filters['stage_name_map'] = stage_name_map
+
+stage_descriptions = {
+    'retrieve': 'Download the data file using the URL',
+    'extract': 'Opens the data file, checks the format of it matches XLS or CSV and it reads the raw transaction data',
+    'combine': 'Column titles are normalised and any not recognised are flagged up',
+    'cleanup': 'Dates are parsed, numbers parsed and supplier names are normalised as much as possible',
+    'validate': 'Checks each transaction has a valid date and amount. Those that don\'t are discarded',
+    }
+def stage_description_map(stage_name):
+    '''Provides a decription of a stage'''
+    return stage_descriptions[stage_name]
+env.filters['stage_description_map'] = stage_description_map
 
 def write_report(dest_dir, template, name, **kw):
     template = env.get_template(template)
@@ -24,11 +66,15 @@ def write_report(dest_dir, template, name, **kw):
         fh.write(report.encode('utf-8'))
 
 def all_groups():
-    client = CkanClient(base_location='http://data.gov.uk/api')
+    client = ckan_client()
     for name in client.group_register_get():
         group = client.group_entity_get(name)
         #group['type']
         yield group
+
+def get_group(group_name):
+    client = ckan_client()
+    return client.group_entity_get(group_name)
 
 def group_query(engine):
     stats = {}
@@ -56,17 +102,23 @@ def group_query(engine):
         stats[res['name']] = res
     return stats
 
-def group_data(engine):
+def group_data(engine, publisher_filter):
+    '''Gets each group from CKAN as a dictionary, adds in the
+    stats for it and yields it.'''
     stats = group_query(engine)
-    for i, group in enumerate(all_groups()):
+    if publisher_filter:
+        groups = [get_group(group_str) for group_str in publisher_filter]
+    else:
+        groups = all_groups()
+    for i, group in enumerate(groups):
         group.update(stats.get(group.get('name'), {}))
         print [group['title']]
         yield group
         #if i > 20:
         #    break
 
-def group_report(engine, dest_dir):
-    groups = list(group_data(engine))
+def group_report(engine, dest_dir, publisher_filter):
+    groups = list(group_data(engine, publisher_filter))
     num = len(groups)
     shows = filter(lambda g: g.get('num_sources', 0) > 0, groups)
     valids = filter(lambda g: g.get('num_entries', 0) > 0, groups)
@@ -125,9 +177,12 @@ def resource_query(engine):
     r = engine.execute(q)
     for res in sl.resultiter(r):
         issues = list(sl.resultiter(engine.execute(
-            """ SELECT message, stage FROM issue WHERE resource_id = '%s' AND resource_hash = '%s'
+                """ SELECT message, data, stage FROM issue WHERE resource_id = '%s' AND stage = 'retrieve'
+                ORDER BY timestamp DESC """ % (res['resource_id']))))
+        issues += list(sl.resultiter(engine.execute(
+                """ SELECT message, data, stage FROM issue WHERE resource_id = '%s' AND resource_hash = '%s'
                 ORDER BY timestamp DESC """ % (res['resource_id'], res['retrieve_hash']))))
-        issues = set([(i['stage'], i['message']) for i in issues])
+        issues = set([(i['stage'], i['message'], i['data']) for i in issues])
         res['issues'] = issues
         pn = res['publisher_name']
         if pn is None:
@@ -137,22 +192,32 @@ def resource_query(engine):
         data[pn].append(res)
     return data
 
-def resource_report(engine, dest_dir):
+def resource_report(engine, dest_dir, publisher_filter=None):
     data = resource_query(engine)
-    for publisher_name, resources in data.items():
+    publisher_names = publisher_filter or data
+    for publisher_name in publisher_names:
+        resources = data[publisher_name]
         write_report(dest_dir, 'resources.html', 
             'publisher-' + publisher_name,
             resources=resources,
             publisher_name=publisher_name,
             publisher_title=resources[0].get('publisher_title'))
 
-def create_report(dest_dir):
+def create_report(dest_dir, publisher_filter):
     if not os.path.isdir(dest_dir):
         os.makedirs(dest_dir)
     engine = db_connect()
-    group_report(engine, dest_dir)
-    resource_report(engine, dest_dir)
+    group_report(engine, dest_dir, publisher_filter)
+    resource_report(engine, dest_dir, publisher_filter)
 
 if __name__ == '__main__':
-    import sys
-    create_report(sys.argv[1])
+    usage = 'Usage: python %s <report-path> [<publisher-name>,<publisher-name>,...]' % sys.argv[0]
+    if len(sys.argv) == 3:
+        publisher_filter = sys.argv[2].split(',')
+    elif len(sys.argv) == 2:
+        publisher_filter = None
+    else:
+        print usage
+        sys.exit(1)
+    report_path = sys.argv[1]
+    create_report(report_path, publisher_filter)

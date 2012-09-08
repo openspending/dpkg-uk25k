@@ -62,7 +62,7 @@ def dump_all(filename):
         writer.writerow({k: convert_value(v) for k,v in row.items()})
         if i % 1000 == 0:
             log.info("Writing: %s...", i)
-    log.info("Finished: %s records exported.", i)
+    log.info("Finished: %s records exported to %s", i, filename)
     fh.close()
 
 if __name__ == '__main__':

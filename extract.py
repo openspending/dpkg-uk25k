@@ -52,11 +52,11 @@ def extract_resource_core(engine, row):
         return False, 0
     if html_re.search(source_data[0:1024]) is not None:
         issue(engine, row['resource_id'], row['retrieve_hash'],
-              "HTML file detected")
+              "HTML file detected, not a transaction report")
         return False, 0
     if source_data.startswith('%PDF'):
         issue(engine, row['resource_id'], row['retrieve_hash'],
-              "PDF file detected")
+              "PDF file detected, not a transaction report")
         return False, 0
 
     trans = connection.begin()
@@ -115,6 +115,7 @@ def extract_resource_core(engine, row):
 
 def extract_resource(engine, source_table, row, force):
     if not row['retrieve_status']:
+        log.debug('Row has no retrieve status - skipping')
         return
 
     # Skip over tables we have already extracted

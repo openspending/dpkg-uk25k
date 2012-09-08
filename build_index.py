@@ -1,7 +1,6 @@
-
+import sys
 import sqlaload as sl
 
-from ckanclient import CkanClient
 from common import *
 
 log = logging.getLogger('build_index')
@@ -20,6 +19,8 @@ def fetch_group(client, package):
     return GROUPS[group_name]
 
 def fetch_package(client, package_name, engine, table):
+    '''Queries CKAN for a particular dataset and stores metadata for each
+    of its resources in the local database.'''
     try:
         pkg = client.package_entity_get(package_name)
     except Exception, e:
@@ -48,14 +49,29 @@ def connect():
     src_table = sl.get_table(engine, 'source')
     return engine, src_table
 
-def build_index():
+def build_index(department_filter=None):
+    '''Searches CKAN for spending resources and writes their metadata to
+    the database.'''
     engine, table = connect()
+    client = ckan_client()
     tags = ['+tags:"%s"' % t for t in TAGS]
-    client = CkanClient(base_location='http://data.gov.uk/api')
-    res = client.package_search(" OR ".join(tags),
+    q = " OR ".join(tags)
+    if department_filter:
+        q = '(%s) AND publisher:"%s"' % (q, department_filter)
+    log.info('Search q: %r', q)
+
+    res = client.package_search(q,
             search_options={'limit': 5})
+    log.info('Search returned %i dataset results', res['count'])
     for package_name in res['results']:
         fetch_package(client, package_name, engine, table)
 
 if __name__ == '__main__':
-    build_index()
+    if len(sys.argv) > 2:
+        print 'Usage: python %s [<department-name>]' % sys.argv[0]
+        sys.exit(1)
+    elif len(sys.argv) == 2:
+        department_filter = sys.argv[1]
+    else:
+        department_filter = None
+    build_index(department_filter)

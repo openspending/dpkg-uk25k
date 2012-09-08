@@ -62,12 +62,12 @@ def normalize_hard(column_name):
         'projectcode': 'ProjectCode'
         }.get(column_name)
 
-def column_mapping(row, columns):
+def column_mapping(engine, row, columns):
     nkc = nk_connect('uk25k-column-names')
     columns.remove('id')
     sheet_signature = '|'.join(sorted(set(map(normalize, columns))))
     mapping = {}
-    failed = False
+    failed_columns = []
     for column in columns:
         if column.startswith("column_"):
             mapping[column] = None
@@ -87,15 +87,18 @@ def column_mapping(row, columns):
             except nk.NKInvalid, nm:
                 mapping[column] = None
             except nk.NKNoMatch, nm:
-                failed = True
+                failed_columns.append(column)
             KEY_CACHE[key] = mapping.get(column)
         except Exception, e:
             log.exception(e)
-            failed = True
+            failed_columns.append(column)
             mapping[column] = None
+    if failed_columns:
+        issue(engine, row['resource_id'], row['retrieve_hash'],
+              'Column(s) not recognised', failed_columns)
     if not len([(k,v) for k,v in mapping.items() if v is not None]):
         return None
-    return None if failed else mapping
+    return None if failed_columns else mapping
 
 def combine_sheet(engine, resource, sheet_id, table, mapping):
     begin = time.time()
@@ -140,7 +143,7 @@ def combine_resource_core(engine, row):
             success = False
             continue
         columns = [c.name for c in table.columns]
-        mapping = column_mapping(row, columns)
+        mapping = column_mapping(engine, row, columns)
         if mapping is None:
             log.warn("Unable to generate mapping: %r", columns)
             success = False

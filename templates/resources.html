@@ -82,7 +82,7 @@ layout: gb
           {{showbool(res.resource_id, res.validate_status, 'validate')}}
         </td>
         <td class="num">
-          {{res.num_entries}}
+          {{res.num_entries if res.validate_status else ''}}
         </td>
         <td class="num">
           {{res.oldest|british_date}}

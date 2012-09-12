@@ -102,11 +102,11 @@ layout: gb
         <td>core departments</td>
       </tr>
       <tr class="top_class">
-        <td>{{stats.cover_1m}} ({{stats.cover_1m|pct(stats.numf)}})</td>
+        <td>{{stats.cover_2m}} ({{stats.cover_2m|pct(stats.numf)}})</td>
         <td class="js-tooltip" title="Transactions published in the past month">Up-to-date</td>
       </tr>
       <tr class="has_sources">
-        <td>{{stats.cover_ever - stats.cover_1m}} ({{(stats.cover_ever - stats.cover_1m)|pct(stats.numf)}})</td>
+        <td>{{stats.cover_ever - stats.cover_2m}} ({{(stats.cover_ever - stats.cover_2m)|pct(stats.numf)}})</td>
         <td class="js-tooltip" title="Transactions published, but not in the past month">Has past data</td>
       </tr>
       <tr class="no_sources">
@@ -120,4 +120,8 @@ layout: gb
   {{ render_groups(req_groups, 'Core departments (required to report monthly expenditure)', 'required') }}
   {{ render_groups(nonreq_groups, 'Other data.gov.uk publishers', 'voluntary') }}
 
-  <p>Some of the smaller organisations have very few transactions over £25k and subsequently only publish data for the month if this criteria has been met.</p>
+  <h3>Notes:</h3>
+  <ul>
+    <li>These reports are currently only a beta service. The results are only preliminary, but with the aim to drive improvement in the reporting accuracy, the metadata in data.gov.uk and in the spend data supplied by the websites.</li>
+    <li>Some of the smaller organisations have very few transactions over £25k and subsequently only publish data for the month if this criteria has been met.</li>
+  </ul>

@@ -99,7 +99,7 @@ def group_query(engine):
         res['top_class'] = False
         if res['latest']:
             dt = datetime.datetime.strptime(res['latest'], "%Y-%m-%d")
-            ref = datetime.datetime.now() - datetime.timedelta(days=31)
+            ref = datetime.datetime.now() - datetime.timedelta(days=62)
             res['top_class'] = dt > ref
         stats[res['name']] = res
     return stats
@@ -170,7 +170,7 @@ def group_report(engine, dest_dir, publisher_filter):
 #        'valid_6m': len(within_m(valids, weeks=26)),
 #        'valid_1y': len(within_m(valids, weeks=52)),
         'cover_ever': len(valids),
-        'cover_1m': len(within_c(valids, days=31)),
+        'cover_2m': len(within_c(valids, days=62)),
 #        'cover_3m': len(within_c(valids, weeks=12)),
 #        'cover_6m': len(within_c(valids, weeks=26)),
 #        'cover_1y': len(within_c(valids, weeks=52)),

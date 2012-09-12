@@ -57,7 +57,8 @@ def build_index(department_filter=None):
     tags = ['+tags:"%s"' % t for t in TAGS]
     q = " OR ".join(tags)
     if department_filter:
-        q = '(%s) AND publisher:"%s"' % (q, department_filter)
+        department_filter = ' OR '.join(['publisher:"%s"' % pub for pub in department_filter.split(',')])
+        q = '(%s) AND (%s)' % (q, department_filter)
     log.info('Search q: %r', q)
 
     res = client.package_search(q,

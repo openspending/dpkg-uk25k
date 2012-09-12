@@ -59,8 +59,13 @@ def retrieve(row, engine, source_table, force):
                 result = 'Already cached but needed to add the hash to the database'                
         else:
             # need to fetch the file
-            log.info('Fetching: %s, %s', row['package_name'], row['url'])
-            res = requests.get(fix_url(row['url']), allow_redirects=True,
+            url = row['url']
+            fixed_url = fix_url(url)
+            url_printable = '"%s" fixed to "%s"' % (url, fixed_url) \
+                            if fixed_url != url \
+                            else url
+            log.info('Fetching: %s, %s', row['package_name'], url_printable)
+            res = requests.get(fixed_url, allow_redirects=True,
                                verify=False, timeout=30.0)
             success = res.ok
             if success:
@@ -72,8 +77,13 @@ def retrieve(row, engine, source_table, force):
                 result = 'Downloaded'
             else:
                 issue(engine, row['resource_id'], None,
-                      'Download failed with bad HTTP status: %s' % res.status_code, res.content)
-                result = 'Download failed'
+                      'Download failed with bad HTTP status: %s' % res.status_code, url_printable)
+                result = 'Download failed (status %s)' % res.status_code
+    except requests.Timeout, re:
+        result = 'Timeout accessing URL'
+        issue(engine, row['resource_id'], None, 
+              result, url_printable)
+        success = False
     except Exception, re:
         log.exception(re)
         issue(engine, row['resource_id'], None, 

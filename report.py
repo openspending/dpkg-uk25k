@@ -99,7 +99,7 @@ def group_query(engine):
         res['top_class'] = False
         if res['latest']:
             dt = datetime.datetime.strptime(res['latest'], "%Y-%m-%d")
-            ref = datetime.datetime.now() - datetime.timedelta(weeks=12)
+            ref = datetime.datetime.now() - datetime.timedelta(days=31)
             res['top_class'] = dt > ref
         stats[res['name']] = res
     return stats
@@ -121,13 +121,25 @@ def group_data(engine, publisher_filter):
 
 def group_report(engine, dest_dir, publisher_filter):
     _all_groups = list(group_data(engine, publisher_filter))
+    groups_by_name = dict([(g['name'], g) for g in _all_groups])
     by_names = dict([(g['name'], g['title']) for g in _all_groups])
+
+    # when a group's transactions are published by another group,
+    # copy the number of entries into it
+    published_by_other = filter(lambda g: g.get('spending_published_by', 0), _all_groups)
+    for group in published_by_other:
+        publishing_group = group['spending_published_by']
+        assert isinstance(publishing_group, basestring), publishing_group
+        publishing_group = groups_by_name[publishing_group]
+        for property in ('num_entries', 'num_sources'):
+            if property in publishing_group:
+                group[property] = publishing_group[property]
+    
     req_groups = filter(lambda g: g['must_report'], _all_groups)
     nonreq_groups = filter(lambda g: not g['must_report'], _all_groups)
     num = len(req_groups)
-    shows = filter(lambda g: g.get('num_sources', 0) > 0, req_groups)
+    #shows = filter(lambda g: g.get('num_sources', 0) > 0, req_groups)
     valids = filter(lambda g: g.get('num_entries', 0) > 0, req_groups)
-    cover = filter(lambda g: g.get('num_entries', 0) > 0, req_groups)
 
     def within(groups, field, format_, **kw):
         def _wi(g):
@@ -149,18 +161,19 @@ def group_report(engine, dest_dir, publisher_filter):
     stats = {
         'num': len(req_groups),
         'numf': float(len(req_groups)),
-        'reported_ever': len(shows),
-        'reported_3m': len(within_m(shows, weeks=12)),
-        'reported_6m': len(within_m(shows, weeks=26)),
-        'reported_1y': len(within_m(shows, weeks=52)),
-        'valid_ever': len(valids),
-        'valid_3m': len(within_m(valids, weeks=12)),
-        'valid_6m': len(within_m(valids, weeks=26)),
-        'valid_1y': len(within_m(valids, weeks=52)),
+#        'reported_ever': len(shows),
+#        'reported_3m': len(within_m(shows, weeks=12)),
+#        'reported_6m': len(within_m(shows, weeks=26)),
+#        'reported_1y': len(within_m(shows, weeks=52)),
+#        'valid_ever': len(valids),
+#        'valid_3m': len(within_m(valids, weeks=12)),
+#        'valid_6m': len(within_m(valids, weeks=26)),
+#        'valid_1y': len(within_m(valids, weeks=52)),
         'cover_ever': len(valids),
-        'cover_3m': len(within_c(valids, weeks=12)),
-        'cover_6m': len(within_c(valids, weeks=26)),
-        'cover_1y': len(within_c(valids, weeks=52)),
+        'cover_1m': len(within_c(valids, days=31)),
+#        'cover_3m': len(within_c(valids, weeks=12)),
+#        'cover_6m': len(within_c(valids, weeks=26)),
+#        'cover_1y': len(within_c(valids, weeks=52)),
         }
     pprint(stats)
     write_report(dest_dir, 'publishers.html',
@@ -169,6 +182,7 @@ def group_report(engine, dest_dir, publisher_filter):
             by_names=by_names,
             nonreq_groups=nonreq_groups,
             stats=stats)
+    log.info('Wrote report for groups')
 
 def resource_query(engine):
     data = {}
@@ -206,12 +220,16 @@ def resource_report(engine, dest_dir, publisher_filter=None):
     data = resource_query(engine)
     publisher_names = publisher_filter or data
     for publisher_name in publisher_names:
+        if publisher_name not in data:
+            log.info('No data for publisher: %s', publisher_name)
+            continue
         resources = data[publisher_name]
         write_report(dest_dir, 'resources.html', 
             'publisher-' + publisher_name,
             resources=resources,
             publisher_name=publisher_name,
             publisher_title=resources[0].get('publisher_title'))
+        log.info('Wrote report for publisher: %s', publisher_name)
 
 def create_report(dest_dir, publisher_filter):
     if not os.path.isdir(dest_dir):

@@ -102,12 +102,12 @@ layout: gb
         <td>core departments</td>
       </tr>
       <tr class="top_class">
-        <td>{{stats.cover_3m}} ({{stats.cover_3m|pct(stats.numf)}})</td>
-        <td class="js-tooltip" title="Transactions published in the past 3 months">Up-to-date</td>
+        <td>{{stats.cover_1m}} ({{stats.cover_1m|pct(stats.numf)}})</td>
+        <td class="js-tooltip" title="Transactions published in the past month">Up-to-date</td>
       </tr>
       <tr class="has_sources">
-        <td>{{stats.cover_ever - stats.cover_3m}} ({{(stats.cover_ever - stats.cover_3m)|pct(stats.numf)}})</td>
-        <td class="js-tooltip" title="Transactions published, but not in the past 3 months">Has past data</td>
+        <td>{{stats.cover_ever - stats.cover_1m}} ({{(stats.cover_ever - stats.cover_1m)|pct(stats.numf)}})</td>
+        <td class="js-tooltip" title="Transactions published, but not in the past month">Has past data</td>
       </tr>
       <tr class="no_sources">
         <td>{{stats.num - stats.cover_ever}} ({{(stats.num - stats.cover_ever)|pct(stats.numf)}})</td>

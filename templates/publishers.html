@@ -22,7 +22,7 @@ layout: gb
   {% for group in groups %}
     <tr class="traffic-lights">
       <td>
-        {% if group.num_sources %}
+        {% if group.num_sources and not group.spending_published_by %}
           <a href="publisher-{{group.name}}.html">{{group.title|e}}</a>
         {% else %}
           {{group.title|e}}

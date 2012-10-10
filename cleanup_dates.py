@@ -56,6 +56,7 @@ def detect_formats(data):
     return formats
 
 def apply(row, formats):
+    today = datetime.now()
     for field, format_ in formats.items():
         try:
             value = row.get(field)
@@ -67,6 +68,11 @@ def apply(row, formats):
                 parsed = datetime(*xldate_as_tuple(float(field.strip()), 0))
             else:
                 parsed = datetime.strptime(value.strip(), format_)
+            # Check it is not in the future - an obvious mistake
+            if parsed > today:
+                row[field + 'Formatted'] = None
+                row['valid'] = False
+                continue
             row[field + 'Formatted'] = parsed.strftime("%Y-%m-%d")
         except Exception as e:
             row[field + 'Formatted'] = None

@@ -72,7 +72,9 @@ or from all tables like this::
   sudo -u postgres dropdb uk25k
   sudo -u postgres createdb uk25k
 
-To limit the 
+To limit the analysis to one publisher, specify the name as a parameter to build_index::
+
+  python build_index.py wales-office
 
 Open Issues
 -----------

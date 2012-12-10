@@ -114,7 +114,7 @@ def group_data(engine, publisher_filter):
         groups = all_groups()
     for i, group in enumerate(groups):
         group.update(stats.get(group.get('name'), {}))
-        print [group['title']]
+        print group['name']
         yield group
         #if i > 20:
         #    break
@@ -125,13 +125,13 @@ def group_report(engine, dest_dir, publisher_filter):
     by_names = dict([(g['name'], g['title']) for g in _all_groups])
 
     # when a group's transactions are published by another group,
-    # copy the number of entries into it
+    # copy the results into it
     published_by_other = filter(lambda g: g.get('spending_published_by', 0), _all_groups)
     for group in published_by_other:
         publishing_group = group['spending_published_by']
         assert isinstance(publishing_group, basestring), publishing_group
         publishing_group = groups_by_name[publishing_group]
-        for property in ('num_entries', 'num_sources'):
+        for property in ('num_entries', 'num_sources', 'top_class'):
             if property in publishing_group:
                 group[property] = publishing_group[property]
     
@@ -140,8 +140,10 @@ def group_report(engine, dest_dir, publisher_filter):
     num = len(req_groups)
     #shows = filter(lambda g: g.get('num_sources', 0) > 0, req_groups)
     valids = filter(lambda g: g.get('num_entries', 0) > 0, req_groups)
+    top_class_groups = filter(lambda g: g.get('top_class'), req_groups)
 
     def within(groups, field, format_, **kw):
+        '''Returns groups filtered by whether it has an entry with a field value recent enough.'''
         def _wi(g):
             dt = g.get(field)
             if not dt:
@@ -153,9 +155,17 @@ def group_report(engine, dest_dir, publisher_filter):
         return filter(_wi, groups)
     
     def within_m(groups, **kw):
+        '''Of the groups given, return those with valid spending metadata in a recent period.
+
+        :param kw: the time period (timedelta arguments)
+        '''
         return within(groups, 'last_modified', '%Y-%m-%dT%H:%M:%S', **kw)
     
     def within_c(groups, **kw):
+        '''Of the groups given, return those which have entries in a recent period.
+
+        :param kw: the time period (timedelta arguments)
+        '''
         return within(groups, 'latest', '%Y-%m-%d', **kw)
     
     stats = {
@@ -170,7 +180,8 @@ def group_report(engine, dest_dir, publisher_filter):
 #        'valid_6m': len(within_m(valids, weeks=26)),
 #        'valid_1y': len(within_m(valids, weeks=52)),
         'cover_ever': len(valids),
-        'cover_2m': len(within_c(valids, days=62)),
+        'cover_2m': len(top_class_groups),
+#        'cover_2m': len(within_c(valids, days=62)),
 #        'cover_3m': len(within_c(valids, weeks=12)),
 #        'cover_6m': len(within_c(valids, weeks=26)),
 #        'cover_1y': len(within_c(valids, weeks=52)),

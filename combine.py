@@ -1,4 +1,5 @@
 import time
+import sys
 
 import sqlaload as sl
 import nkclient as nk
@@ -172,12 +173,25 @@ def combine_resource(engine, source_table, row, force):
         'combine_status': status,
         }, unique=['resource_id'])
 
-def combine_all(force=False):
+def combine_resource_id(resource_id, force=False):
     engine = db_connect()
     source_table = sl.get_table(engine, 'source')
-    for row in sl.find(engine, source_table):
+    for row in sl.find(engine, source_table, resource_id=resource_id):
+        combine_resource(engine, source_table, row, force)
+
+def combine(force=False, filter=None):
+    engine = db_connect()
+    source_table = sl.get_table(engine, 'source')
+    for row in sl.find(engine, source_table, **(filter or {})):
         combine_resource(engine, source_table, row, force)
 
 if __name__ == '__main__':
-    combine_all(False)
+    args = sys.argv[1:]
+    filter = {}
+    if '-h' in args or '--help' in args or len(args) > 2:
+        print 'Usage: python %s [<resource ID>]' % sys.argv[0]
+        sys.exit(1)
+    elif len(args) == 1:
+        filter = {'resource_id': args[0]}
 
+    combine(False, filter)

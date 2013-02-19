@@ -66,6 +66,10 @@ Run the scripts like this::
   python validate.py
   python report.py reports
 
+Or do the whole lot together::
+
+  python build_index.py && python retrieve.py && python extract.py && python combine.py && python cleanup.py && python validate.py && python report.py reports
+
 Before running the scripts again, be sure to clear out old data from the issues table
 or from all tables like this::
 

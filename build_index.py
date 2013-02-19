@@ -30,7 +30,7 @@ def fetch_package(client, package_name, engine, table):
     group = fetch_group(client, pkg)
     for res in pkg['resources']:
         log.info(" > Resource %s: %s", res['id'], res['url'])
-        sl.upsert(engine, table, {
+        data = {
             'resource_id': res['id'],
             'package_id': pkg['id'],
             'package_name': pkg['name'],
@@ -42,7 +42,12 @@ def fetch_package(client, package_name, engine, table):
             'publisher_type': group.get('type'),
             'format': res['format'],
             'description': res['description']
-            }, ['resource_id'])
+            }
+        row = sl.find_one(engine, table, resource_id=pkg['id'])
+        if row and row['url'] != pkg['url']:
+            # url has changed, so force retrieval next time
+            data['retrieve_status'] = False
+        sl.upsert(engine, table, data, ['resource_id'])
 
 def connect():
     engine = db_connect()

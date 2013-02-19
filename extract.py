@@ -135,11 +135,15 @@ def extract_resource(engine, source_table, row, force):
         'sheets': sheets
         }, unique=['resource_id'])
 
-def extract_all(force=False):
+def extract_some(force=False, **kwargs):
+    # kwargs = resource_id=x, package_name=y, publisher_title=z
     engine = db_connect()
     source_table = sl.get_table(engine, 'source')
-    for row in sl.find(engine, source_table):
+    for row in sl.find(engine, source_table, **kwargs):
         extract_resource(engine, source_table, row, force)
+
+def extract_all(force=False):
+    extract_some(force=force)
 
 if __name__ == '__main__':
     extract_all(False)

@@ -40,23 +40,10 @@ def calculate_hash(data):
 def retrieve(row, engine, source_table, force):
     content_id = None
     try:
-        if force != 'download' and os.path.exists(source_path(row)):
-            # cached file exists
-            # See if it is in the db - db may have been
-            # wiped since it was last downloaded
-            record = sl.find_one(engine, source_table, resource_id=row['resource_id'])
-            if force != 'hash' and record and record.get('retrieve_hash'):
-                return 'Already cached and in database'
-            # Calculate hash
-            fh = open(source_path(row), 'rb')
-            data = fh.read()
-            fh.close()
-            content_id = calculate_hash(data)
-            success = True
-            if force == 'hash':
-                result = 'Already cached. Added hash to the database'
-            else:
-                result = 'Already cached but needed to add the hash to the database'                
+        if force != 'download' and row.get('retrieve_status') == True \
+               and row.get('retrieve_hash') and os.path.exists(source_path(row)):
+            # cached file exists and url is unchanged
+            return 'Already cached and in database'
         else:
             # need to fetch the file
             url = row['url']
@@ -97,11 +84,11 @@ def retrieve(row, engine, source_table, force):
         unique=['resource_id'])
     return result
 
-def retrieve_all(force=False):
+def retrieve_some(force=False, **filters):
     engine = db_connect()
     source_table = sl.get_table(engine, 'source')
     result_counts = defaultdict(int)
-    for row in sl.all(engine, source_table):
+    for row in sl.find(engine, source_table, **filters):
         result = retrieve(row, engine, source_table, force)
         result_counts['total'] += 1
         result_counts[result] += 1
@@ -109,11 +96,13 @@ def retrieve_all(force=False):
     for result, count in result_counts.items():
         log.info('  %i %s', count, result)
 
+def retrieve_all(force=False):
+    retrieve_some(force=force)
+    
 def usage():
-    usage = '''Usage: python %s [force-download|force-hash]
+    usage = '''Usage: python %s [force]
 Where:
-     'force-download' ignores the file cache and downloads all URLs anyway
-     'force-hash' ignores any hashes previously stored for cached files
+     'force' ignores the file cache and downloads all URLs anyway
 ''' % sys.argv[0]
     print usage
     sys.exit(1)
@@ -121,10 +110,8 @@ Where:
 if __name__ == '__main__':
     force = False
     if len(sys.argv) == 2:
-        if sys.argv[1] in ('force', 'force-download'):
-            force = 'download'
-        elif sys.argv[1] == 'force-hash':
-            force = 'hash'
+        if sys.argv[1] in ('force'):
+            force = True
         else:
             usage()
     elif len(sys.argv) > 2:

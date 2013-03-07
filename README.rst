@@ -14,7 +14,7 @@ The scripts have several stages that need to be run in order:
   spend-transactions) on data.gov.uk
 * ``retrieve`` will then try to fetch all the files
 * ``extract`` will attempt to parse CSV/XLS/... and load it into a DB
-* ``combine``
+* ``combine`` column names are mapped and values are stored in one central table
 * ``cleanup``
 * ``validate``
 * ``report`` creates the report HTML

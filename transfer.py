@@ -40,7 +40,7 @@ def transfer(spend_data_filepath):
         res = requests.post(post_url, data=f, headers=headers)
     if not res.ok:
         print 'Error: POSTing the data did not succeed: %s %s' % \
-              (post_url, res.status_code, res.content)
+              (res.status_code, res.content)
         sys.exit(1)
     print 'Transferred ok' % spend_data_filepath
 

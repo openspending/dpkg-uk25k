@@ -18,6 +18,8 @@ The scripts have several stages that need to be run in order:
 * ``cleanup``
 * ``validate``
 * ``report`` creates the report HTML
+* ``dump`` dumps all the database to spending.csv
+* ``transfer`` transfers spending.csv to an OpenSpending website
 
 
 Setup
@@ -32,7 +34,7 @@ You need to install the dependencies (best in a python virtual environment)::
   virtualenv pyenv-dpkg-uk25k
   pyenv-dpkg-uk25k/bin/pip install -r requirements.txt
 
-The default configuration is in ``default.ini``. If you want to change the configuration, copy it ``config.ini`` and edit it there.
+The default configuration is in ``default.ini``. If you want to change the configuration, copy it ``config.ini`` and edit it there. To do the transfer stage, then an openspending.apikey needs to be specified.
 
 Before you can run the scripts you need to prepare a database::
 
@@ -80,10 +82,11 @@ To limit the analysis to one publisher, specify the name as a parameter to build
 
   python build_index.py wales-office
 
-Open Issues
------------
+And finally, if you want to dump the resulting spend database to spending.csv and load it into OpenSpending then you can do:
 
-?
+  python dump.py
+  python transfer.py
+
 
 Punted
 ------

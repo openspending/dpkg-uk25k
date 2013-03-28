@@ -11,7 +11,7 @@ layout: gb
   td.bool {
     align: center;
   }
- 
+
   .bool.False a {
     color: #B94A48;
     text-decoration: none;
@@ -57,7 +57,7 @@ layout: gb
   {% for pres in resources|groupby('package_name') %}
     <tr>
       <th colspan="11">
-        <a href="http://data.gov.uk/dataset/{{pres.grouper}}">{{pres.list[0]['package_title']}}</a>
+        <a href="http://data.gov.uk/dataset/{{pres.grouper}}">{{pres.list[0]['package_title']|e}}</a>
       </th>
     </tr>
     {% for res in pres.list|sort(attribute='latest', reverse=True) %}

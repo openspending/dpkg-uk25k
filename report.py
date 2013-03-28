@@ -86,7 +86,7 @@ def group_query(engine):
             MAX(src.last_modified) AS last_modified,
             COUNT(DISTINCT src.id) AS num_sources,
             COUNT(spe.id) AS num_entries,
-            SUM(spe."AmountFormatted") AS total,
+            SUM(spe."AmountFormatted"::float) AS total,
             MAX(spe."DateFormatted") AS latest,
             MIN(spe."DateFormatted") AS oldest
         FROM source src LEFT OUTER JOIN spending spe
@@ -134,7 +134,7 @@ def group_report(engine, dest_dir, publisher_filter):
         for property in ('num_entries', 'num_sources', 'top_class'):
             if property in publishing_group:
                 group[property] = publishing_group[property]
-    
+
     req_groups = filter(lambda g: g['must_report'], _all_groups)
     nonreq_groups = filter(lambda g: not g['must_report'], _all_groups)
     num = len(req_groups)
@@ -153,21 +153,21 @@ def group_report(engine, dest_dir, publisher_filter):
             ref = datetime.datetime.now() - datetime.timedelta(**kw)
             return dt > ref
         return filter(_wi, groups)
-    
+
     def within_m(groups, **kw):
         '''Of the groups given, return those with valid spending metadata in a recent period.
 
         :param kw: the time period (timedelta arguments)
         '''
         return within(groups, 'last_modified', '%Y-%m-%dT%H:%M:%S', **kw)
-    
+
     def within_c(groups, **kw):
         '''Of the groups given, return those which have entries in a recent period.
 
         :param kw: the time period (timedelta arguments)
         '''
         return within(groups, 'latest', '%Y-%m-%d', **kw)
-    
+
     stats = {
         'num': len(req_groups),
         'numf': float(len(req_groups)),
@@ -198,10 +198,10 @@ def group_report(engine, dest_dir, publisher_filter):
 def resource_query(engine):
     data = {}
     q = """
-        SELECT 
+        SELECT
             src.*,
             COUNT(spe.id) AS num_entries,
-            SUM(spe."AmountFormatted") AS total,
+            SUM(spe."AmountFormatted"::float) AS total,
             MAX(spe."DateFormatted") AS latest,
             MIN(spe."DateFormatted") AS oldest
         FROM source src LEFT OUTER JOIN spending spe
@@ -235,7 +235,7 @@ def resource_report(engine, dest_dir, publisher_filter=None):
             log.info('No data for publisher: %s', publisher_name)
             continue
         resources = data[publisher_name]
-        write_report(dest_dir, 'resources.html', 
+        write_report(dest_dir, 'resources.html',
             'publisher-' + publisher_name,
             resources=resources,
             publisher_name=publisher_name,

@@ -1,0 +1,265 @@
+{
+  "name": "gov-spending-gb-central",
+  "title": "UK Central Government Spending (over £25k)",
+  "license": [
+    {
+      "url": "http://opendatacommons.org/licenses/pddl/1.0/", 
+      "name": "Public Domain Dedication and License"
+    }
+  ], 
+  "files": [
+    {
+      "url": "http://data.etl.openspending.org/uk25k/spending-latest.csv",
+      "schema": {
+        "fields": [
+          {
+            "type": "string", 
+            "id": "TransactionNumber"
+          }, 
+          {
+            "type": "string", 
+            "id": "SubjectiveCode"
+          }, 
+          {
+            "type": "string", 
+            "id": "RecordETLID"
+          }, 
+          {
+            "type": "string", 
+            "id": "DepartmentFamilyNameCanonical"
+          }, 
+          {
+            "type": "string", 
+            "id": "CompanyCode"
+          }, 
+          {
+            "type": "string", 
+            "id": "SourceFormat"
+          }, 
+          {
+            "type": "string", 
+            "id": "ProjectCode"
+          }, 
+          {
+            "type": "string", 
+            "id": "SupplierPostalCode"
+          }, 
+          {
+            "type": "string", 
+            "id": "Source"
+          }, 
+          {
+            "type": "string", 
+            "id": "SubcategoryDescription"
+          }, 
+          {
+            "type": "string", 
+            "id": "SupplierName"
+          }, 
+          {
+            "type": "string", 
+            "id": "Contract Number"
+          }, 
+          {
+            "type": "string", 
+            "id": "RecordSignature"
+          }, 
+          {
+            "type": "string", 
+            "id": "AccountCode"
+          }, 
+          {
+            "type": "string", 
+            "id": "SupplierVATNumber"
+          }, 
+          {
+            "type": "string", 
+            "id": "VATNumberFormatted"
+          }, 
+          {
+            "type": "string", 
+            "id": "SupplierNameURI"
+          }, 
+          {
+            "type": "string", 
+            "id": "CostCentre"
+          }, 
+          {
+            "type": "string", 
+            "id": "SourceDatasetName"
+          }, 
+          {
+            "type": "string", 
+            "id": "EntityName"
+          }, 
+          {
+            "type": "string", 
+            "id": "ExpenseArea"
+          }, 
+          {
+            "type": "string", 
+            "id": "TaxValue"
+          }, 
+          {
+            "type": "string", 
+            "id": "FlagVoluntaryCommunitySector"
+          }, 
+          {
+            "type": "string", 
+            "id": "SourceURL"
+          }, 
+          {
+            "type": "string", 
+            "id": "SourceDatasetTitle"
+          }, 
+          {
+            "type": "string", 
+            "id": "CategoryDescription"
+          }, 
+          {
+            "type": "string", 
+            "id": "AmountFormatted"
+          }, 
+          {
+            "type": "string", 
+            "id": "Date"
+          }, 
+          {
+            "type": "string", 
+            "id": "NONSTANDARD"
+          }, 
+          {
+            "type": "string", 
+            "id": "BudgetHolder"
+          }, 
+          {
+            "type": "string", 
+            "id": "DocumentDate"
+          }, 
+          {
+            "type": "string", 
+            "id": "SupplierType"
+          }, 
+          {
+            "type": "string", 
+            "id": "EntityNameCanonical"
+          }, 
+          {
+            "type": "string", 
+            "id": "ExpenditureType"
+          }, 
+          {
+            "type": "string", 
+            "id": "SourcePublisherTitle"
+          }, 
+          {
+            "type": "string", 
+            "id": "Claim Number"
+          }, 
+          {
+            "type": "string", 
+            "id": "ContractNumber"
+          }, 
+          {
+            "type": "string", 
+            "id": "PurchaseType"
+          }, 
+          {
+            "type": "string", 
+            "id": "DocumentValue"
+          }, 
+          {
+            "type": "number", 
+            "format": "currency",
+            "id": "Amount"
+          }, 
+          {
+            "type": "string", 
+            "id": "AccountDescription"
+          }, 
+          {
+            "type": "string", 
+            "id": "Narrative"
+          }, 
+          {
+            "type": "string", 
+            "id": "FlagSME"
+          }, 
+          {
+            "type": "string", 
+            "id": "FlagGrant"
+          }, 
+          {
+            "type": "string", 
+            "id": "SourceSheetID"
+          }, 
+          {
+            "type": "string", 
+            "id": "ProgrammeAdminOrCapital"
+          }, 
+          {
+            "type": "string", 
+            "id": "SupplierNameCanonical"
+          }, 
+          {
+            "type": "string", 
+            "id": "VendorName"
+          }, 
+          {
+            "type": "string", 
+            "id": "Programme"
+          }, 
+          {
+            "type": "string", 
+            "id": "Sector"
+          }, 
+          {
+            "type": "string", 
+            "id": "InvoiceNumber"
+          }, 
+          {
+            "type": "string", 
+            "id": "Maintainer"
+          }, 
+          {
+            "type": "string", 
+            "id": "DepartmentFamilyName"
+          }, 
+          {
+            "type": "string", 
+            "id": "FlagSoleTrader"
+          }, 
+          {
+            "type": "string", 
+            "id": "DocumentNumber"
+          }, 
+          {
+            "type": "string", 
+            "id": "InvoiceSource"
+          }, 
+          {
+            "type": "string", 
+            "id": "SourceID"
+          }, 
+          {
+            "type": "string", 
+            "id": "SourcePublisherName"
+          }, 
+          {
+            "type": "string", 
+            "id": "SourceDatasetID"
+          }, 
+          {
+            "type": "date", 
+            "format": "yyyy-mm-dd",
+            "id": "DateFormatted"
+          }, 
+          {
+            "type": "string", 
+            "id": "ExpenseType"
+          }
+        ]
+      }
+    }
+  ]
+}

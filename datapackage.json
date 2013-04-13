@@ -117,7 +117,8 @@
             "id": "CategoryDescription"
           }, 
           {
-            "type": "string", 
+            "type": "number", 
+            "format": "currency",
             "id": "AmountFormatted"
           }, 
           {
@@ -169,8 +170,7 @@
             "id": "DocumentValue"
           }, 
           {
-            "type": "number", 
-            "format": "currency",
+            "type": "string", 
             "id": "Amount"
           }, 
           {

@@ -64,7 +64,7 @@ def extract_resource_core(engine, row):
     try:
         if source_data.startswith(COMPDOC_SIGNATURE):
             fh.seek(0)
-            table_set = XLSTableSet.from_fileobj(fh)
+            table_set = XLSTableSet(fh)
         elif source_data.startswith('PK'):
             table_set = XLSXTableSet(source_path(row))
         else:
@@ -74,7 +74,7 @@ def extract_resource_core(engine, row):
             #cd = chardet.detect(source_data)
             #fh.close()
             #fh = codecs.open(source_path(row), 'r', cd['encoding'] or 'utf-8')
-            table_set = CSVTableSet.from_fileobj(sio)
+            table_set = CSVTableSet(sio)
 
         sheets = 0
         for sheet_id, row_set in enumerate(table_set.tables):

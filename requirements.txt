@@ -1,4 +1,4 @@
--e git+https://github.com/okfn/messytables#egg=messytables
+messytables>=0.8
 -e git+https://github.com/okfn/sqlaload#egg=sqlaload
 -e git+https://github.com/pudo/nomenklatura-client#egg=nkclient
 psycopg2

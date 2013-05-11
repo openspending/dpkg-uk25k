@@ -2,7 +2,7 @@ import time
 import sys
 
 import sqlaload as sl
-import nkclient as nk
+import nomenklatura
 
 from common import *
 from common import issue as _issue
@@ -84,10 +84,10 @@ def column_mapping(engine, row, columns):
                 continue
             try:
                 v = nkc.lookup(key)
-                mapping[column] = v.value
-            except nk.NKInvalid, nm:
+                mapping[column] = v.name
+            except nkc.Invalid, nm:
                 mapping[column] = None
-            except nk.NKNoMatch, nm:
+            except nkc.NoMatch, nm:
                 failed_columns.append(column)
             KEY_CACHE[key] = mapping.get(column)
         except Exception, e:

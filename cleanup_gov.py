@@ -1,5 +1,4 @@
 import sqlaload as sl
-import nkclient as nk
 
 from common import *
 
@@ -25,10 +24,10 @@ def apply(row):
                     row[out] = None
                 ds = nk_connect(dataset)
                 v = ds.lookup(val)
-                row[out] = v.value
-            except nk.NKInvalid:
+                row[out] = v.name
+            except ds.Invalid:
                 row[out] = None
-            except nk.NKNoMatch:
+            except ds.NoMatch:
                 row[out] = None
             CACHE[(dataset, val)] = row[out]
         except Exception, e:

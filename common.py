@@ -4,7 +4,7 @@ import logging
 import datetime
 import ConfigParser
 import sqlaload as sl
-import nkclient as nk
+import nomenklatura
 from ckanclient import CkanClient
 
 logging.basicConfig(level=logging.NOTSET)
@@ -54,7 +54,7 @@ NK_DATASETS = {}
 
 def nk_connect(dataset):
     if not dataset in NK_DATASETS:
-        NK_DATASETS[dataset] = nk.NKDataset(
+        NK_DATASETS[dataset] = nomenklatura.Dataset(
                 dataset, 
                 api_key='beaf2ff2-ea94-47c0-942f-1613a09056c2')
     return NK_DATASETS[dataset]

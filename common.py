@@ -45,10 +45,14 @@ def ckan_client():
     ckan_api = config_get('ckan-api.url')
     return CkanClient(base_location='http://data.gov.uk/api')
 
+CONNECTION = []
+
 def db_connect():
-    sqlalchemy_url = config_get('sqlalchemy.url')
-    log.info('Using database: %s', sqlalchemy_url)
-    return sl.connect(sqlalchemy_url)
+    if not len(CONNECTION):
+        sqlalchemy_url = config_get('sqlalchemy.url')
+        log.info('Using database: %s', sqlalchemy_url)
+        CONNECTION.append(sl.connect(sqlalchemy_url))
+    return CONNECTION[0]
 
 NK_DATASETS = {}
 

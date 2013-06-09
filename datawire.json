@@ -1,0 +1,11 @@
+{
+    "key": "ukspending",
+    "label": "UK Central Government Expenditure",
+    "url": "http://data.gov.uk/",
+    "editors": [1, 2],
+    "events": [{
+        "key": "transactions",
+        "label": "Financial Transactions",
+        "template": "{{entity SupplierName}} received a payment of {{Amount}} from {{entity EntityName}} (part of {{entity DepartmentFamilyName}})."
+    }]
+}

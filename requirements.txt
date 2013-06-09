@@ -1,5 +1,6 @@
 messytables>=0.8
 pynomenklatura
+datastringer
 -e git+https://github.com/okfn/sqlaload#egg=sqlaload
 psycopg2
 ckanclient

@@ -14,11 +14,11 @@ def submit_all():
                             event='transactions')
     log.info("Submitting frames to datawire...")
     for i, row in enumerate(generate_all()):
-        event_at = row.get('DateFormatted')
-        if event_at:
-            event_at = datetime.datetime.strptime(event_at, '%Y-%m-%d')
+        action_at = row.get('DateFormatted')
+        if action_at:
+            action_at = datetime.datetime.strptime(action_at, '%Y-%m-%d')
         stringer.submit(row,
-                        event_at=event_at,
+                        action_at=action_at,
                         source_url=row.get('SourceURL'))
     data = {'datawire_submitted': True}
     sl.update(engine, spending, row)

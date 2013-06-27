@@ -57,7 +57,7 @@ def spend_diff(previous_csv_filepath, new_csv_filepath, key_column):
         csv_reader = csv.reader(f, delimiter=',', quotechar='"')
         header = f.readline()
         header_cells = parse_csv_line(header)
-        yield header.rstrip('\n\r')
+        header_yielded_yet = False
         try:
             key_column_index = header_cells.index(key_column)
         except ValueError:
@@ -74,7 +74,10 @@ def spend_diff(previous_csv_filepath, new_csv_filepath, key_column):
                 else:
                     # line has changed
                     pass
-            yield line.rstrip('\n\r')
+            if not header_yielded_yet:
+                yield header.rstrip('\n\r')
+                header_yielded_yet = True
+            yield line
 
 
 def csv_rows(file_handler):

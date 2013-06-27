@@ -24,6 +24,15 @@ class TestBasic(unittest.TestCase):
     def test_swapped(self):
         self.assertNotIn('2,Something swapped 2', self.lines)
         self.assertNotIn('3,Something swapped 3', self.lines)
+    def test_blank_diff(self):
+        # identical files yields nothing (no header row even)
+        # so that it is clear there is nothing to load into
+        # OpenSpending
+        basic1 = os.path.join(test_sample_dir, 'basic1.csv')
+        self.assertEqual(list(spend_diff.spend_diff(basic1, basic1,
+                                                    'RowID')),
+                         [])
+
 
 class TestDifficult(unittest.TestCase):
     @classmethod

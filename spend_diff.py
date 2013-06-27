@@ -32,10 +32,10 @@ def spend_diff(previous_csv_filepath, new_csv_filepath, key_column):
     # Check CSVs exist
     previous_csv_filepath = os.path.expanduser(previous_csv_filepath)
     if not os.path.exists(previous_csv_filepath):
-        raise DiffError('Could not find Previous CSV file: %s', previous_csv_filepath)
+        raise DiffError('Could not find Previous CSV file: %s' % previous_csv_filepath)
     new_csv_filepath = os.path.expanduser(new_csv_filepath)
     if not os.path.exists(new_csv_filepath):
-        raise DiffError('Could not find New CSV file: %s', new_csv_filepath)
+        raise DiffError('Could not find New CSV file: %s' % new_csv_filepath)
 
     # Open the previous CSV and save the hashes of the lines
     previous_lines = {} # id: line hash
@@ -45,8 +45,8 @@ def spend_diff(previous_csv_filepath, new_csv_filepath, key_column):
         try:
             key_column_index = header_cells.index(key_column)
         except ValueError:
-            raise DiffError('Could not find key %r in header column %r',
-                            key_column, header_cells)
+            raise DiffError('Could not find key %r in header column %r' %
+                            (key_column, header_cells))
         for line, row in csv_rows(f):
             # Store hash
             key = row[key_column_index]
@@ -117,6 +117,6 @@ if __name__ == '__main__':
         for line in spend_diff(args.previous_csv, args.new_csv, args.key_column):
             print line
     except DiffError, e:
-        print 'ERROR', e
-        parser.print_help()
+        print >> sys.stderr, 'ERROR: %s\n' % e
+        parser.print_help(argparse._sys.stderr)
         sys.exit(1)

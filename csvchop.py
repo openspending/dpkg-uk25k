@@ -30,12 +30,13 @@ def csvchop(csv_filepath, max_part_size, overwrite=False):
         part_file = PartFiles(csv_filepath, header, overwrite=overwrite)
 
         try:
-            for line, row in csv_rows(in_file):
-                part_file.write(line)
+            for row_str, row_list in csv_rows(in_file):
+                part_file.write(row_str)
                 if part_file.get_length() >= max_part_size:
                     part_file.close_current_file()
         finally:
             part_file.close_current_file()
+        part_file.print_totals()
 
 class PartFiles:
     def __init__(self, filepath_base, header, overwrite=False):
@@ -46,8 +47,11 @@ class PartFiles:
         self.current_file = None
         self.part_index = 1
         self.current_file_length = 0
+        self.current_file_rows = 0
+        self.total_bytes = 0
+        self.total_rows = 0
 
-    def write(self, line):
+    def write(self, row):
         if not self.current_file:
             # open a new part file
             self.filepath = '%s.%i' % (self.filepath_base, self.part_index)
@@ -56,10 +60,12 @@ class PartFiles:
             self.current_file = open(self.filepath, 'wb')
             self.current_file.write(self.header)
             self.current_file_length = len(self.header)
+            self.current_file_rows = 0
             self.part_index += 1
-        line_to_write = line + '\n'
-        self.current_file.write(line_to_write)
-        self.current_file_length += len(line_to_write)
+        row_to_write = row + '\n'
+        self.current_file.write(row_to_write)
+        self.current_file_length += len(row_to_write)
+        self.current_file_rows += 1
 
     def get_length(self):
         '''return the length of the current file'''
@@ -69,7 +75,12 @@ class PartFiles:
         if self.current_file:
             self.current_file.close()
             self.current_file = None
-            print 'Written %s (%s bytes)' % (self.filepath, self.current_file_length)
+            print 'Written %s - (%s bytes, %s data rows)' % (self.filepath, self.current_file_length, self.current_file_rows)
+            self.total_bytes += self.current_file_length
+            self.total_rows += self.current_file_rows
+
+    def print_totals(self):
+        print 'Total %s bytes %s rows' % (self.total_bytes, self.total_rows)
 
 def csv_rows(file_handler):
     '''Returns each row of a CSV as both a string and a list,

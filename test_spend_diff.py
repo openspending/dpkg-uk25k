@@ -47,6 +47,7 @@ class TestDifficult(unittest.TestCase):
         self.assertIn('1,"first,one",', self.lines)
         self.assertIn("2,'second,one',", self.lines)
         self.assertIn('3,"blank\nline",empty', self.lines)
+        self.assertIn('4,"two\n\nblank lines",empty', self.lines)
 
 class TestUtil(unittest.TestCase):
     def test_parse_csv(self):

@@ -30,7 +30,12 @@ def currency_format(value):
     ''' 12345.67 -> 12,345 '''
     if not value:
         return ''
-    return '{:,.0f}'.format(value)
+    try:
+        # Python 2.7
+        return '{:,.0f}'.format(value)
+    except ValueError:
+        # Python 2.6 - cannot do commas
+        return '{0:.0f}'.format(value)
 env.filters['currency_format'] = currency_format
 
 stage_name_mapping = {

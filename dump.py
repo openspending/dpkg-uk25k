@@ -57,9 +57,16 @@ def dump_all(filename):
     fh = open(filename, 'wb')
     for i, row in enumerate(generate_all()):
         if writer is None:
-            writer = csv.DictWriter(fh, row.keys())
-            writer.writeheader()
-        writer.writerow({k: convert_value(v) for k,v in row.items()})
+            field_names = row.keys()
+            writer = csv.DictWriter(fh, field_names)
+            try:
+                # Python 2.7/3.2+ only
+                writer.writeheader()
+            except AttributeError:
+                # Python 2.6 etc
+                writer.writerow(dict(zip(field_names, field_names)))
+
+        writer.writerow(dict((k, convert_value(v)) for k,v in row.items()))
         if i % 1000 == 0:
             log.info("Writing: %s...", i)
     log.info("Finished: %s records exported to %s", i, filename)

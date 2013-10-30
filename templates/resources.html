@@ -44,15 +44,16 @@ layout: gb
 <table class="table table-condensed">
   <tr>
     <th colspan="2">Dataset file</th>
-    <th class="js-tooltip" title="{{'retrieve'|stage_description_map}}">{{'retrieve'|stage_name_map}}</th>
-    <th class="js-tooltip" title="{{'extract'|stage_description_map}}">{{'extract'|stage_name_map}}</th>
-    <th class="js-tooltip" title="{{'combine'|stage_description_map}}">{{'combine'|stage_name_map}}</th>
-    <th class="js-tooltip" title="{{'cleanup'|stage_description_map}}">{{'cleanup'|stage_name_map}}</th>
-    <th class="js-tooltip" title="{{'validate'|stage_description_map}}">{{'validate'|stage_name_map}}</th>
-    <th class="num js-tooltip" title="Number of spend transactions">Transactions</th>
-    <th class="num js-tooltip" title="Date of the first spend transaction report">Oldest</th>
-    <th class="num js-tooltip" title="Date of the most recent spend transaction reported">Latest</th>
-    <th class="num js-tooltip" title="Total value of the spend transactions reported">Total (&pound;)</th>
+    <!-- tooltips temporarily disabled due to http://redmine.co-dev1.dh.bytemark.co.uk/issues/973 -->
+    <th class="xjs-tooltip" title="{{'retrieve'|stage_description_map}}">{{'retrieve'|stage_name_map}}</th>
+    <th class="xjs-tooltip" title="{{'extract'|stage_description_map}}">{{'extract'|stage_name_map}}</th>
+    <th class="xjs-tooltip" title="{{'combine'|stage_description_map}}">{{'combine'|stage_name_map}}</th>
+    <th class="xjs-tooltip" title="{{'cleanup'|stage_description_map}}">{{'cleanup'|stage_name_map}}</th>
+    <th class="xjs-tooltip" title="{{'validate'|stage_description_map}}">{{'validate'|stage_name_map}}</th>
+    <th class="num xjs-tooltip" title="Number of spend transactions">Transactions</th>
+    <th class="num xjs-tooltip" title="Date of the first spend transaction report">Oldest</th>
+    <th class="num xjs-tooltip" title="Date of the most recent spend transaction reported">Latest</th>
+    <th class="num xjs-tooltip" title="Total value of the spend transactions reported">Total (&pound;)</th>
   </tr>
   {% for pres in resources|groupby('package_name') %}
     <tr>

@@ -68,12 +68,17 @@ def retrieve(row, engine, source_table, force):
                 result = 'Download failed (status %s)' % res.status_code
     except requests.Timeout, re:
         result = 'Timeout accessing URL'
-        issue(engine, row['resource_id'], None, 
+        issue(engine, row['resource_id'], None,
+              result, url_printable)
+        success = False
+    except requests.exceptions.RequestException, e:
+        result = e.__class__.__name__ # e.g. 'ConnectionError'
+        issue(engine, row['resource_id'], None,
               result, url_printable)
         success = False
     except Exception, re:
         log.exception(re)
-        issue(engine, row['resource_id'], None, 
+        issue(engine, row['resource_id'], None,
               'Exception occurred', unicode(re))
         success = False
         result = 'Exception occurred'

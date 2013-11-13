@@ -19,6 +19,7 @@ FORMATS = [
     'excel']
 
 def detect_format(values):
+    '''Given a list of dates, return the date format string that matches them best.'''
     # TODO: alternative solution - some sheets use more than one date format, 
     # could pass a priorized list and attempt each?
     if not len(values):
@@ -55,12 +56,13 @@ def detect_formats(data):
         formats[field] = detect_format(values)
     return formats
 
-def apply(row, formats):
+def apply(row, formats, stats):
     today = datetime.now()
     for field, format_ in formats.items():
         try:
             value = row.get(field)
             if value is None:
+                stats.add_spending('Empty', row)
                 continue
             if format_ == 'excel':
                 # Deciphers excel dates that have been mangled into integers by
@@ -72,11 +74,14 @@ def apply(row, formats):
             if parsed > today:
                 row[field + 'Formatted'] = None
                 row['valid'] = False
+                stats.add_spending('Date in the future', row)
                 continue
+            stats.add_spending('Parsed ok', row)
             row[field + 'Formatted'] = parsed.strftime("%Y-%m-%d")
         except Exception as e:
             row[field + 'Formatted'] = None
             row['valid'] = False
+            stats.add_spending('Exception %s' % e.__class__.__name__, row)
             #log.exception(e)
     return row
 

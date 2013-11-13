@@ -64,6 +64,11 @@ def normalize_hard(column_name):
         }.get(column_name)
 
 def column_mapping(engine, row, columns):
+    '''Given a list of column names, it returns the mappings stored in
+    Nomenklatura.
+
+    If any missing mappings, returns None.
+    '''
     nkc = nk_connect('uk25k-column-names')
     columns.remove('id')
     sheet_signature = '|'.join(sorted(set(map(normalize, columns))))
@@ -71,6 +76,9 @@ def column_mapping(engine, row, columns):
     failed_columns = []
     for column in columns:
         if column.startswith("column_"):
+            # Blank column headings get changed to something like "column_10"
+            # e.g. http://data.gov.uk/dataset/financial-transactions-data-co/resource/6e2866de-b95a-46e0-95a7-c83ebf64f979
+            # Ignore data in these columns
             mapping[column] = None
             continue
         try:
@@ -134,27 +142,37 @@ def combine_sheet(engine, resource, sheet_id, table, mapping):
     finally:
         connection.close()
 
-def combine_resource_core(engine, row):
-    success = True
+def combine_resource_core(engine, row, stats):
+    '''Given a resource (source row) it opens the table with its contents
+    and puts its rows into the combined table, using the column mappings.
+
+    Returns whether it succeeds or not.
+    '''
+    error = None
     for sheet_id in range(0, row['sheets']):
         table = sl.get_table(engine, 'raw_%s_sheet%s' % (
             row['resource_id'], sheet_id))
         if not engine.has_table(table.name):
-            log.warn("Sheet table does not exist: %s", table)
-            success = False
+            error = 'Sheet table does not exist'
+            log.warn('Sheet table does not exist: %s', table)
             continue
         columns = [c.name for c in table.columns]
         mapping = column_mapping(engine, row, columns)
         if mapping is None:
-            log.warn("Unable to generate mapping: %r", columns)
-            success = False
+            error = 'Column mappings not complete'
+            log.warn('Column mappings not complete: %s', columns)
             continue
         if not combine_sheet(engine, row, sheet_id, table, mapping):
-            succces = False
-    return success
+            error = 'Could not combine sheet'
+    if error:
+        stats.add_source(error, row)
+    else:
+        stats.add_source('Combined ok', row)
+    return (not error)
 
-def combine_resource(engine, source_table, row, force):
+def combine_resource(engine, source_table, row, force, stats):
     if not row['extract_status']:
+        stats.add_source('Previous step (extract) not complete', row)
         return
 
     # Skip over tables we have already combined
@@ -162,11 +180,12 @@ def combine_resource(engine, source_table, row, force):
             resource_id=row['resource_id'],
             combine_hash=row['extract_hash'],
             combine_status=True) is not None:
+        stats.add_source('Already combined', row)
         return
 
     log.info("Combine: %s, Resource %s", row['package_name'], row['resource_id'])
 
-    status = combine_resource_core(engine, row)
+    status = combine_resource_core(engine, row, stats)
     sl.upsert(engine, source_table, {
         'resource_id': row['resource_id'],
         'combine_hash': row['extract_hash'],
@@ -174,16 +193,19 @@ def combine_resource(engine, source_table, row, force):
         }, unique=['resource_id'])
 
 def combine_resource_id(resource_id, force=False):
+    stats = OpenSpendingStats()
     engine = db_connect()
     source_table = sl.get_table(engine, 'source')
     for row in sl.find(engine, source_table, resource_id=resource_id):
-        combine_resource(engine, source_table, row, force)
+        combine_resource(engine, source_table, row, force, stats)
 
 def combine(force=False, filter=None):
+    stats = OpenSpendingStats()
     engine = db_connect()
     source_table = sl.get_table(engine, 'source')
     for row in sl.find(engine, source_table, **(filter or {})):
-        combine_resource(engine, source_table, row, force)
+        combine_resource(engine, source_table, row, force, stats)
+    log.info('Combine summary: \n%s' % stats.report())
 
 if __name__ == '__main__':
     args = sys.argv[1:]

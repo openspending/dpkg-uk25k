@@ -6,6 +6,7 @@ import ConfigParser
 import sqlaload as sl
 import nomenklatura
 from ckanclient import CkanClient
+from running_stats import OpenSpendingStats
 
 logging.basicConfig(level=logging.NOTSET)
 logging.getLogger('sqlaload').setLevel(level=logging.WARN)

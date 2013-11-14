@@ -13,6 +13,7 @@ import os
 import requests
 
 from common import *
+import sqlaload as sl
 
 def transfer(spend_data_filepath):
     # gather all the options

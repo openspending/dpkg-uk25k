@@ -3,7 +3,6 @@ import json
 import logging
 import datetime
 import ConfigParser
-import sqlaload as sl
 import nomenklatura
 from ckanclient import CkanClient
 from running_stats import OpenSpendingStats
@@ -16,6 +15,7 @@ log = logging.getLogger('common')
 
 def issue(engine, resource_id, resource_hash, stage, message,
           data={}):
+    import sqlaload as sl # this import is slow, so it is done inside this func
     table = sl.get_table(engine, 'issue')
     log = logging.getLogger('issue')
     log.debug("R[%s]: %s", resource_id, message)
@@ -50,6 +50,7 @@ CONNECTION = []
 
 def db_connect():
     if not len(CONNECTION):
+        import sqlaload as sl
         sqlalchemy_url = config_get('sqlalchemy.url')
         log.info('Using database: %s', sqlalchemy_url)
         CONNECTION.append(sl.connect(sqlalchemy_url))

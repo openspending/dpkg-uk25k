@@ -1,4 +1,6 @@
 from common import *
+import sqlaload as sl
+
 import sys
 
 from retrieve import retrieve

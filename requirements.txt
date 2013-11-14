@@ -8,3 +8,4 @@ ckanclient
 openpyxl
 jinja2
 chardet
+ckanclient

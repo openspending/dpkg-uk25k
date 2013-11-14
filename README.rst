@@ -84,10 +84,10 @@ Now restart postgres::
   sudo service postgresql restart
 
 
-Running the scripts
--------------------
+Running the ETL scripts
+-----------------------
 
-Run the scripts like this::
+Run the ETL scripts like this::
 
   . pyenv-dpkg-uk25k/bin/activate
   cd dpkg-uk25k

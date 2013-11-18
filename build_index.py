@@ -18,17 +18,21 @@ def fetch_group(client, package):
         GROUPS[group_name] = client.group_entity_get(group_name)
     return GROUPS[group_name]
 
-def fetch_package(client, package_name, engine, table):
+def fetch_package(client, package_name, engine, table, stats_resources):
     '''Queries CKAN for a particular dataset and stores metadata for each
     of its resources in the local database.'''
     try:
-        pkg = client.package_entity_get(package_name)
+        pkg = client.action('package_show', id=package_name)
     except Exception, e:
         log.exception(e)
         return
     log.info("Dataset: %s", pkg['name'])
     group = fetch_group(client, pkg)
-    for res in pkg['resources']:
+    num_resources = 0
+    # DGU splits resources into: timeseries, individual and additional
+    # and we want to ignore additional (PDFs etc).
+    for res in pkg.get('timeseries_resources', []) + \
+            pkg.get('individual_resources', []):
         log.info(" > Resource %s: %s", res['id'], res['url'])
         data = {
             'resource_id': res['id'],
@@ -43,11 +47,18 @@ def fetch_package(client, package_name, engine, table):
             'format': res['format'],
             'description': res['description']
             }
-        row = sl.find_one(engine, table, resource_id=pkg['id'])
-        if row and row['url'] != pkg['url']:
+        row = sl.find_one(engine, table, resource_id=res['id'])
+        if row and row['url'] != data['url']:
             # url has changed, so force retrieval next time
             data['retrieve_status'] = False
+            stats_resources.add_source('URL changed', data)
+        elif row:
+            stats_resources.add_source('URL unchanged', data)
+        else:
+            stats_resources.add_source('New resource', data)
         sl.upsert(engine, table, data, ['resource_id'])
+        num_resources += 1
+    return num_resources
 
 def connect():
     engine = db_connect()
@@ -59,6 +70,7 @@ def build_index(department_filter=None):
     the database.'''
     engine, table = connect()
     client = ckan_client()
+    log.info('CKAN: %s', client.base_location)
     tags = ['+tags:"%s"' % t for t in TAGS]
     q = " OR ".join(tags)
     if department_filter:
@@ -69,8 +81,18 @@ def build_index(department_filter=None):
     res = client.package_search(q,
             search_options={'limit': 5})
     log.info('Search returned %i dataset results', res['count'])
+    stats = OpenSpendingStats()
+    stats_resources = OpenSpendingStats()
     for package_name in res['results']:
-        fetch_package(client, package_name, engine, table)
+        num_resources = fetch_package(client, package_name, engine, table, stats_resources)
+        if num_resources == 0:
+            stats.add('No resources', package_name)
+        else:
+            stats.add('Found resources', package_name)
+    print 'Datasets build_index summary:'
+    print stats.report()
+    print 'Resources build_index summary:'
+    print stats_resources.report()
 
 if __name__ == '__main__':
     if len(sys.argv) > 2:

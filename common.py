@@ -39,7 +39,8 @@ def config_get(option):
     global config
     if not config:
         config = ConfigParser.ConfigParser()
-        config.read(['default.ini', 'config.ini'])
+        filename = config.read(['default.ini', 'config.ini'])
+        assert filename, 'Could not find config.ini in CWD: %s' % os.getcwd()
     return config.get('uk25k', option)
 
 def ckan_client():

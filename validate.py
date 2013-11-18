@@ -1,4 +1,5 @@
 import sys
+from optparse import OptionParser
 
 import sqlaload as sl
 import hashlib
@@ -34,6 +35,7 @@ def validate_sheet(engine, row, sheet_id, stats_spending):
     connection = engine.connect()
     trans = connection.begin()
     issue_noted_for_this_resource = False # record first failure only
+    error_message = None
     try:
         records = 0
         for row_ in data:
@@ -48,6 +50,7 @@ def validate_sheet(engine, row, sheet_id, stats_spending):
                           'Date invalid (or possible the date format is inconsistent)',
                           {'row_id': row_.get('row_id'),
                            'Date': row_.get('Date')})
+                    error_message = 'Date invalid'
                     issue_noted_for_this_resource = True
             else:
                 stats_spending['date'].add_spending('Date ok', row_)
@@ -59,6 +62,7 @@ def validate_sheet(engine, row, sheet_id, stats_spending):
                     issue(engine, row['resource_id'], row['retrieve_hash'],
                           'Amount invalid', {'row_id': row_.get('row_id'),
                                              'Amount': row_.get('Amount')})
+                    error_message = 'Amount invalid'
                     issue_noted_for_this_resource = True
             else:
                 stats_spending['amount'].add_spending('Amount ok', row_)
@@ -68,7 +72,7 @@ def validate_sheet(engine, row, sheet_id, stats_spending):
             sl.update(connection, spending_table,
                       {'id': result['id']}, result)
         trans.commit()
-        return records > 0
+        return records > 0, error_message
     finally:
         connection.close()
 
@@ -87,21 +91,33 @@ def validate_resource(engine, source_table, row, force, stats, stats_spending):
 
     log.info("Validate: %s, Resource %s", row['package_name'], row['resource_id'])
 
-    status = True
+    no_errors = True
+    no_records = True
+    error_message = None
     for sheet_id in range(0, row['sheets']):
-        sheet_status = validate_sheet(engine, row, sheet_id, stats_spending)
-        if status and not sheet_status:
-            status = False
-    log.info("Result: %s", status)
+        sheet_records, sheet_error_message = validate_sheet(engine, row, sheet_id, stats_spending)
+        if no_errors and sheet_error_message:
+            no_errors = False
+            error_message = sheet_error_message
+        if no_records and sheet_records:
+            no_records = False
+    
+    log.info("Result: records=%s errors=%s", not no_records, not no_errors)
     sl.upsert(engine, source_table, {
         'resource_id': row['resource_id'],
         'validate_hash': row['cleanup_hash'],
-        'validate_status': status,
+        'validate_status': no_errors,
         }, unique=['resource_id'])
-    if status:
-        stats.add_source('Validated ok', row)
+    if no_errors:
+        if no_records:
+            stats.add_source('No records but no errors', row)
+        else:
+            stats.add_source('Validated ok', row)
     else:
-        stats.add_source(error_message, row)
+        if no_records:
+            stats.add_source('All transactions invalid: %s' % error_message, row)
+        else:
+            stats.add_source('Some transactions invalid: %s' % error_message, row)
 
 def validate(force=False, filter=None):
     stats = OpenSpendingStats()
@@ -116,15 +132,16 @@ def validate(force=False, filter=None):
         log.info('Validate %s: \n%s' % (stat_type, stats_spending[stat_type].report()))
 
 if __name__ == '__main__':
-    args = sys.argv[1:]
     filter = {}
-    force = False
-    if '-h' in args or '--help' in args or len(args) > 2:
-        print 'Usage: python %s [<resource ID>]' % sys.argv[0]
-        sys.exit(1)
-    elif len(args) == 1:
+    usage = "usage: %prog [options] [<resource ID>]"
+    parser = OptionParser(usage=usage)
+    parser.add_option("-f", "--force",
+                      action="store_true", dest="force", default=False,
+                      help="Runs validation on previously validated records")
+    (options, args) = parser.parse_args()
+    if len(args) == 1:
         filter = {'resource_id': args[0]}
-        force = True
+        options.force = True
 
-    validate(force=force, filter=filter)
+    validate(force=options.force, filter=filter)
 

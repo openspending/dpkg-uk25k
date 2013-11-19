@@ -101,12 +101,12 @@ def build_index(publisher_name=None):
         processed_packages.add(package_name)
         num_resources = fetch_package(client, package_name, engine, table, stats_resources)
         if num_resources == 0:
-            stats.add('No resources', package_name)
+            stats.add('Dataset has no resources', package_name)
         else:
-            stats.add('Found resources', package_name)
+            stats.add('Dataset has resources', package_name)
     # Removed rows about deleted packages
     obsolete_packages = existing_packages - processed_packages
-    log.info('Obsolete packages: %s from %s',
+    log.info('Obsolete datasets: %s from %s',
              len(obsolete_packages), len(existing_packages))
     for package_name in obsolete_packages:
         sl.delete(engine, table, package_name=package_name)

@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 import logging
 import datetime
@@ -78,13 +79,26 @@ def nk_connect(dataset):
 
 def parse_args():
     filter_ = {}
-    usage = "usage: %prog [options] [<resource ID>]"
+    usage = "usage: %prog [options]"
     parser = OptionParser(usage=usage)
     parser.add_option("-f", "--force",
                       action="store_true", dest="force", default=False,
                       help="Don't skip previously processed records")
+    parser.add_option("-r", "--resource_id", dest="resource_id")
+    parser.add_option("-d", "--dataset_name", dest="dataset_name")
+    parser.add_option("-i", "--dataset_id", dest="dataset_id")
+    parser.add_option("-p", "--publisher_name", dest="publisher_name")
     (options, args) = parser.parse_args()
-    if len(args) == 1:
-        filter_ = {'resource_id': args[0]}
-        options.force = True
+    if args:
+        print 'Error: there should be no args, just options'
+        parser.print_help()
+        sys.exit(1)
+    if options.resource_id:
+        filter_['resource_id'] = options.resource_id
+    elif options.dataset_id:
+        filter_['package_id'] = options.dataset_id
+    elif options.dataset_name:
+        filter_['package_name'] = options.dataset_name
+    elif options.publisher_name:
+        filter_['publisher_name'] = options.publisher_name
     return options, filter_

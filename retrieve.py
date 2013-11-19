@@ -77,6 +77,9 @@ def retrieve(row, engine, source_table, force, stats):
               result, url_printable)
         success = False
     except Exception, re:
+        # Includes:
+        # * httplib.IncompleteRead
+        # * requests.packages.urllib3.exceptions.LocationParseError
         log.exception(re)
         issue(engine, row['resource_id'], None, STAGE,
               'Exception occurred', unicode(re))

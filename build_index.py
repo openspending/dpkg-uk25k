@@ -80,6 +80,7 @@ def build_index(publisher_name=None):
     log.info('CKAN: %s', client.base_location)
     tags = ['+tags:"%s"' % t for t in TAGS]
     q = " OR ".join(tags)
+    publisher_dict_filter = {}
     if publisher_name:
         publisher_solr_filter = 'publisher:"%s"' % publisher_name
         q = '(%s) AND (%s)' % (q, publisher_solr_filter)

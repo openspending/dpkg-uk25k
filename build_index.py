@@ -47,7 +47,7 @@ def fetch_package(client, package_name, engine, table, stats_resources):
             'description': res['description']
             }
         row = sl.find_one(engine, table, resource_id=res['id'])
-        processed_resource_ids.add(row['resource_id'])
+        processed_resource_ids.add(res['id'])
         if row and row['url'] != data['url']:
             # url has changed, so force retrieval next time
             data['retrieve_status'] = False
@@ -72,7 +72,7 @@ def connect():
     src_table = sl.get_table(engine, 'source')
     return engine, src_table
 
-def build_index(department_filter=None):
+def build_index(publisher_name=None):
     '''Searches CKAN for spending resources and writes their metadata to
     the database.'''
     engine, table = connect()
@@ -80,14 +80,16 @@ def build_index(department_filter=None):
     log.info('CKAN: %s', client.base_location)
     tags = ['+tags:"%s"' % t for t in TAGS]
     q = " OR ".join(tags)
-    if department_filter:
-        department_filter = ' OR '.join(['publisher:"%s"' % pub for pub in department_filter.split(',')])
-        q = '(%s) AND (%s)' % (q, department_filter)
-    log.info('Search q: %r', q)
+    if publisher_name:
+        publisher_solr_filter = 'publisher:"%s"' % publisher_name
+        q = '(%s) AND (%s)' % (q, publisher_solr_filter)
+        publisher_dict_filter = {'publisher_name': publisher_name}
+    log.info('SOLR Search q: %r', q)
 
     existing_packages = set(
             [res['package_name']
-             for res in sl.distinct(engine, table, 'package_name')])
+             for res in sl.distinct(engine, table, 'package_name', **publisher_dict_filter)])
+    log.info('Existing datasets: %i', len(existing_packages))
     processed_packages = set()
     res = client.package_search(q,
             search_options={'limit': 5})
@@ -102,7 +104,10 @@ def build_index(department_filter=None):
         else:
             stats.add('Found resources', package_name)
     # Removed rows about deleted packages
-    for package_name in existing_packages - processed_packages:
+    obsolete_packages = existing_packages - processed_packages
+    log.info('Obsolete packages: %s from %s',
+             len(obsolete_packages), len(existing_packages))
+    for package_name in obsolete_packages:
         sl.delete(engine, table, package_name=package_name)
         sl.delete(engine, 'issue', package_name=package_name)
         stats.add('Removed obsolete dataset', package_name)
@@ -113,10 +118,10 @@ def build_index(department_filter=None):
 
 if __name__ == '__main__':
     if len(sys.argv) > 2:
-        print 'Usage: python %s [<department-name>]' % sys.argv[0]
+        print 'Usage: python %s [<publisher-name>]' % sys.argv[0]
         sys.exit(1)
     elif len(sys.argv) == 2:
-        department_filter = sys.argv[1]
+        publisher_name = sys.argv[1]
     else:
-        department_filter = None
-    build_index(department_filter)
+        publisher_name = None
+    build_index(publisher_name)

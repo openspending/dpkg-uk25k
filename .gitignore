@@ -4,5 +4,6 @@ nosetests.xml
 sources/*
 *~
 report/*
+reports/*
 *.DS_Store
 *.swp

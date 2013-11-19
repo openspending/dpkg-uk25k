@@ -1,17 +1,12 @@
 import sys
-from optparse import OptionParser
 
 import sqlaload as sl
 import hashlib
 
 from common import *
-from common import issue as _issue
 
-log = logging.getLogger('validate')
-
-def issue(engine, resource_id, resource_hash, message, data={}):
-    _issue(engine, resource_id, resource_hash, 'validate',
-           message, data=data)
+STAGE = 'validate'
+log = logging.getLogger(STAGE)
 
 def generate_signature(row):
     sig = '*$*'.join([
@@ -46,7 +41,7 @@ def validate_sheet(engine, row, sheet_id, stats_spending):
                 stats_spending['date'].add_spending('Date invalid', row_)
                 result['valid'] = False
                 if not issue_noted_for_this_resource:
-                    issue(engine, row['resource_id'], row['retrieve_hash'],
+                    issue(engine, row['resource_id'], row['retrieve_hash'], STAGE,
                           'Date invalid (or possible the date format is inconsistent)',
                           {'row_id': row_.get('row_id'),
                            'Date': row_.get('Date')})
@@ -59,7 +54,7 @@ def validate_sheet(engine, row, sheet_id, stats_spending):
                 stats_spending['amount'].add_spending('Amount invalid', row_)
                 result['valid'] = False
                 if not issue_noted_for_this_resource:
-                    issue(engine, row['resource_id'], row['retrieve_hash'],
+                    issue(engine, row['resource_id'], row['retrieve_hash'], STAGE,
                           'Amount invalid', {'row_id': row_.get('row_id'),
                                              'Amount': row_.get('Amount')})
                     error_message = 'Amount invalid'
@@ -90,6 +85,7 @@ def validate_resource(engine, source_table, row, force, stats, stats_spending):
         return
 
     log.info("Validate: %s, Resource %s", row['package_name'], row['resource_id'])
+    clear_issues(engine, row['resource_id'], STAGE)
 
     no_errors = True
     no_records = True
@@ -132,16 +128,6 @@ def validate(force=False, filter=None):
         log.info('Validate %s: \n%s' % (stat_type, stats_spending[stat_type].report()))
 
 if __name__ == '__main__':
-    filter = {}
-    usage = "usage: %prog [options] [<resource ID>]"
-    parser = OptionParser(usage=usage)
-    parser.add_option("-f", "--force",
-                      action="store_true", dest="force", default=False,
-                      help="Runs validation on previously validated records")
-    (options, args) = parser.parse_args()
-    if len(args) == 1:
-        filter = {'resource_id': args[0]}
-        options.force = True
-
+    options, filter = parse_args()
     validate(force=options.force, filter=filter)
 

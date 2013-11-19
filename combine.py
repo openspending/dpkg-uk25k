@@ -5,14 +5,10 @@ import sqlaload as sl
 import nomenklatura
 
 from common import *
-from common import issue as _issue
 
-log = logging.getLogger('combine')
+STAGE = 'combine'
+log = logging.getLogger(STAGE)
 KEY_CACHE = {}
-
-def issue(engine, resource_id, resource_hash, message, data={}):
-    _issue(engine, resource_id, resource_hash, 'combine',
-           message, data=data)
 
 def normalize(column_name):
     column_name = column_name.replace('.', '')
@@ -103,7 +99,7 @@ def column_mapping(engine, row, columns):
             failed_columns.append(column)
             mapping[column] = None
     if failed_columns:
-        issue(engine, row['resource_id'], row['retrieve_hash'],
+        issue(engine, row['resource_id'], row['retrieve_hash'], STAGE,
               'Column(s) not recognised', failed_columns)
     if not len([(k,v) for k,v in mapping.items() if v is not None]):
         return None
@@ -184,6 +180,7 @@ def combine_resource(engine, source_table, row, force, stats):
         return
 
     log.info("Combine: %s, Resource %s", row['package_name'], row['resource_id'])
+    clear_issues(engine, row['resource_id'], STAGE)
 
     status = combine_resource_core(engine, row, stats)
     sl.upsert(engine, source_table, {
@@ -208,12 +205,5 @@ def combine(force=False, filter=None):
     log.info('Combine summary: \n%s' % stats.report())
 
 if __name__ == '__main__':
-    args = sys.argv[1:]
-    filter = {}
-    if '-h' in args or '--help' in args or len(args) > 2:
-        print 'Usage: python %s [<resource ID>]' % sys.argv[0]
-        sys.exit(1)
-    elif len(args) == 1:
-        filter = {'resource_id': args[0]}
-
-    combine(False, filter)
+    options, filter = parse_args()
+    combine(force=options.force, filter=filter)

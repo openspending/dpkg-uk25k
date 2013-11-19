@@ -9,14 +9,10 @@ import requests
 import sqlaload as sl
 
 from common import *
-from common import issue as _issue
 from functools import partial
 
-log = logging.getLogger('retrieve')
-
-def issue(engine, resource_id, resource_hash, message, data={}):
-    _issue(engine, resource_id, resource_hash, 'retrieve',
-           message, data=data)
+STAGE = 'retrieve'
+log = logging.getLogger(STAGE)
 
 def fix_url(url):
     # The correct character set for URLs is "broken". This is probably close enough.
@@ -35,17 +31,19 @@ def fix_url(url):
     return url
 
 def calculate_hash(data):
-    return hashlib.sha256(data).hexdigest()    
+    return hashlib.sha256(data).hexdigest()
 
-def retrieve(row, engine, source_table, force):
+def retrieve(row, engine, source_table, force, stats):
     content_id = None
     try:
         if force != 'download' and row.get('retrieve_status') == True \
                and row.get('retrieve_hash') and os.path.exists(source_path(row)):
             # cached file exists and url is unchanged
-            return 'Already cached and in database'
+            stats.add_source('Already cached and in database', row)
+            return
         else:
             # need to fetch the file
+            clear_issues(engine, row['resource_id'], STAGE)
             url = row['url']
             fixed_url = fix_url(url)
             url_printable = '"%s" fixed to "%s"' % (url, fixed_url) \
@@ -61,65 +59,47 @@ def retrieve(row, engine, source_table, force):
                 fh = open(source_path(row), 'wb')
                 fh.write(data)
                 fh.close()
-                result = 'Downloaded'
+                stats.add_source('Downloaded', row)
             else:
-                issue(engine, row['resource_id'], None,
+                issue(engine, row['resource_id'], None, STAGE,
                       'Download failed with bad HTTP status: %s' % res.status_code, url_printable)
-                result = 'Download failed (status %s)' % res.status_code
+                stats.add_source('Download failed, HTTP status %s' % res.status_code, row)
     except requests.Timeout, re:
         result = 'Timeout accessing URL'
-        issue(engine, row['resource_id'], None,
+        stats.add_source(result, row)
+        issue(engine, row['resource_id'], None, STAGE,
               result, url_printable)
         success = False
     except requests.exceptions.RequestException, e:
         result = e.__class__.__name__ # e.g. 'ConnectionError'
-        issue(engine, row['resource_id'], None,
+        stats.add_source(result, row)
+        issue(engine, row['resource_id'], None, STAGE,
               result, url_printable)
         success = False
     except Exception, re:
         log.exception(re)
-        issue(engine, row['resource_id'], None,
+        issue(engine, row['resource_id'], None, STAGE,
               'Exception occurred', unicode(re))
         success = False
-        result = 'Exception occurred'
+        stats.add_source('Exception occurred', row)
     sl.upsert(engine, source_table, {
         'resource_id': row['resource_id'],
         'retrieve_status': success,
         'retrieve_hash': content_id},
         unique=['resource_id'])
-    return result
 
-def retrieve_some(force=False, **filters):
+def retrieve_some(force=False, filter=None):
+    stats = OpenSpendingStats()
     engine = db_connect()
     source_table = sl.get_table(engine, 'source')
-    result_counts = defaultdict(int)
-    for row in sl.find(engine, source_table, **filters):
-        result = retrieve(row, engine, source_table, force)
-        result_counts['total'] += 1
-        result_counts[result] += 1
-    log.info('Total %i URLs', result_counts.pop('total'))
-    for result, count in result_counts.items():
-        log.info('  %i %s', count, result)
+    for row in sl.find(engine, source_table, **(filter or {})):
+        retrieve(row, engine, source_table, force, stats)
+    print 'Retrieve summary:'
+    print stats.report()
 
 def retrieve_all(force=False):
     retrieve_some(force=force)
-    
-def usage():
-    usage = '''Usage: python %s [force]
-Where:
-     'force' ignores the file cache and downloads all URLs anyway
-''' % sys.argv[0]
-    print usage
-    sys.exit(1)
-
+   
 if __name__ == '__main__':
-    force = False
-    if len(sys.argv) == 2:
-        if sys.argv[1] in ('force'):
-            force = True
-        else:
-            usage()
-    elif len(sys.argv) > 2:
-        usage()
-    retrieve_all(force)
-
+    options, filter = parse_args()
+    retrieve_some(force=options.force, filter=filter)

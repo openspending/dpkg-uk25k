@@ -3,6 +3,8 @@ import json
 import logging
 import datetime
 import ConfigParser
+from optparse import OptionParser
+
 import nomenklatura
 from ckanclient import CkanClient
 from running_stats import OpenSpendingStats
@@ -27,6 +29,14 @@ def issue(engine, resource_id, resource_hash, stage, message,
         'message': message,
         'data': json.dumps(data)
         })
+
+def clear_issues(engine, resource_id, stage):
+    import sqlaload as sl # this import is slow, so it is done inside this func
+    table = sl.get_table(engine, 'issue')
+    sl.delete(engine, table, 
+              resource_id=resource_id,
+              stage=stage,
+    )
 
 def source_path(row):
     source_dir = config_get('resource-cache.dir')
@@ -62,8 +72,19 @@ NK_DATASETS = {}
 def nk_connect(dataset):
     if not dataset in NK_DATASETS:
         NK_DATASETS[dataset] = nomenklatura.Dataset(
-                dataset, 
+                dataset,
                 api_key='beaf2ff2-ea94-47c0-942f-1613a09056c2')
     return NK_DATASETS[dataset]
 
-
+def parse_args():
+    filter_ = {}
+    usage = "usage: %prog [options] [<resource ID>]"
+    parser = OptionParser(usage=usage)
+    parser.add_option("-f", "--force",
+                      action="store_true", dest="force", default=False,
+                      help="Don't skip previously processed records")
+    (options, args) = parser.parse_args()
+    if len(args) == 1:
+        filter_ = {'resource_id': args[0]}
+        options.force = True
+    return options, filter_

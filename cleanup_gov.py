@@ -11,10 +11,11 @@ GOV_FIELDS = [
 
 log = logging.getLogger('cleanup_gov')
 
-def apply(row, stats):
+def apply(row, stats_dict):
     for field, dataset in GOV_FIELDS:
         out = field + 'Canonical'
         val = row.get(field)
+        stats = stats_dict['field']
         try:
             if (dataset, val) in CACHE:
                 row[out] = CACHE[(dataset, val)]

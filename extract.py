@@ -12,13 +12,9 @@ from messytables import *
 import sqlaload as sl
 
 from common import *
-from common import issue as _issue
 
-log = logging.getLogger('extract')
-
-def issue(engine, resource_id, resource_hash, message, data={}):
-    _issue(engine, resource_id, resource_hash, 'extract',
-           message, data=data)
+STAGE = 'extract'
+log = logging.getLogger(STAGE)
 
 def keyify(key):
     # None of these characters can be used in column names, due to sqlalchemy bugs
@@ -47,17 +43,17 @@ def extract_resource_core(engine, row, stats):
     source_data = fh.read()
 
     if not len(source_data):
-        issue(engine, row['resource_id'], row['retrieve_hash'],
+        issue(engine, row['resource_id'], row['retrieve_hash'], STAGE,
               "Empty file")
         stats.add_source('Empty file', row)
         return False, 0
     if html_re.search(source_data[0:1024]) is not None:
-        issue(engine, row['resource_id'], row['retrieve_hash'],
+        issue(engine, row['resource_id'], row['retrieve_hash'], STAGE,
               "HTML file detected, not a transaction report")
         stats.add_source('HTML file', row)
         return False, 0
     if source_data.startswith('%PDF'):
-        issue(engine, row['resource_id'], row['retrieve_hash'],
+        issue(engine, row['resource_id'], row['retrieve_hash'], STAGE,
               "PDF file detected, not a transaction report")
         stats.add_source('PDF file', row)
         return False, 0
@@ -116,7 +112,7 @@ def extract_resource_core(engine, row, stats):
         return sheets>0, sheets
     except Exception, ex:
         log.exception(ex)
-        issue(engine, row['resource_id'], row['retrieve_hash'],
+        issue(engine, row['resource_id'], row['retrieve_hash'], STAGE,
               unicode(ex))
         stats.add_source('Exception: %s' % ex.__class__.__name__, row)
         return False, 0
@@ -140,6 +136,7 @@ def extract_resource(engine, source_table, row, force, stats):
         return
 
     log.info("Extracting: %s, File %s", row['package_name'], row['resource_id'])
+    clear_issues(engine, row['resource_id'], STAGE)
 
     status, sheets = extract_resource_core(engine, row, stats)
     sl.upsert(engine, source_table, {
@@ -149,12 +146,12 @@ def extract_resource(engine, source_table, row, force, stats):
         'sheets': sheets
         }, unique=['resource_id'])
 
-def extract_some(force=False, **kwargs):
+def extract_some(force=False, filter=None):
     # kwargs = resource_id=x, package_name=y, publisher_title=z
     stats = OpenSpendingStats()
     engine = db_connect()
     source_table = sl.get_table(engine, 'source')
-    for row in sl.find(engine, source_table, **kwargs):
+    for row in sl.find(engine, source_table, **(filter or {})):
         extract_resource(engine, source_table, row, force, stats)
     log.info('Extract summary: \n%s' % stats.report())
 
@@ -162,13 +159,5 @@ def extract_all(force=False):
     extract_some(force=force)
 
 if __name__ == '__main__':
-    args = sys.argv[1:]
-    filter = {}
-    if '-h' in args or '--help' in args or len(args) > 2:
-        print 'Usage: python %s [<resource ID>]' % sys.argv[0]
-        sys.exit(1)
-    elif len(args) == 1:
-        filter = {'resource_id': args[0]}
-
-    extract_some(force=False, **filter)
-
+    options, filter = parse_args()
+    extract_some(force=options.force, filter=filter)

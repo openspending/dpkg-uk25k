@@ -103,8 +103,7 @@ Or do the whole lot together::
 
   python build_index.py && python retrieve.py && python extract.py && python combine.py && python cleanup.py && python validate.py && python report.py reports
 
-Before running the scripts again, be sure to clear out old data from the issues table
-or from all tables like this::
+When running the scripts multiple times, previously successful resources will not be processed again. Use --force to ensure they are. If you want to start completely from fresh, you can delete and recreate all tables like this::
 
   sudo -u postgres dropdb uk25k
   sudo -u postgres createdb uk25k
@@ -113,7 +112,7 @@ To limit the analysis to one publisher, specify the name as a parameter to build
 
   python build_index.py wales-office
 
-And finally, if you want to dump the resulting spend database to spending.csv and load it into OpenSpending then you can do:
+And finally, if you want to dump the resulting spend database to spending.csv and load it into OpenSpending then you can do::
 
   python dump.py
   python transfer.py

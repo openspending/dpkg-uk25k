@@ -62,7 +62,7 @@ def apply(row, formats, stats):
         try:
             value = row.get(field)
             if value is None:
-                stats.add_spending('Empty', row)
+                stats[field].add_spending('Empty', row)
                 continue
             if format_ == 'excel':
                 # Deciphers excel dates that have been mangled into integers by
@@ -74,14 +74,14 @@ def apply(row, formats, stats):
             if parsed > today:
                 row[field + 'Formatted'] = None
                 row['valid'] = False
-                stats.add_spending('Date in the future', row)
+                stats[field].add_spending('Date in the future', row)
                 continue
-            stats.add_spending('Parsed ok', row)
+            stats[field].add_spending('Parsed ok', row)
             row[field + 'Formatted'] = parsed.strftime("%Y-%m-%d")
         except Exception as e:
             row[field + 'Formatted'] = None
             row['valid'] = False
-            stats.add_spending('Exception %s' % e.__class__.__name__, row)
+            stats[field].add_spending('Exception %s' % e.__class__.__name__, row)
             #log.exception(e)
     return row
 

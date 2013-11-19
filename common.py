@@ -33,7 +33,7 @@ def issue(engine, resource_id, resource_hash, stage, message,
 def clear_issues(engine, resource_id, stage):
     import sqlaload as sl # this import is slow, so it is done inside this func
     table = sl.get_table(engine, 'issue')
-    sl.delete(engine, table, 
+    sl.delete(engine, table,
               resource_id=resource_id,
               stage=stage,
     )

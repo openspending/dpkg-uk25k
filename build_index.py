@@ -62,8 +62,8 @@ def fetch_package(client, package_name, engine, table, stats_resources):
     obsolete_rows = [row for row in existing_rows
                      if row['resource_id'] not in processed_resource_ids]
     for row in obsolete_rows:
-        sl.delete(engine, table, {'resource_id': row['resource_id']})
-        sl.delete(engine, 'issue', {'resource_id': row['resource_id']})
+        sl.delete(engine, table, resource_id=row['resource_id'])
+        sl.delete(engine, 'issue', resource_id=row['resource_id'])
         stats_resources.add_source('Deleted obsolete row', row)
     return len(resources)
 
@@ -103,8 +103,8 @@ def build_index(department_filter=None):
             stats.add('Found resources', package_name)
     # Removed rows about deleted packages
     for package_name in existing_packages - processed_packages:
-        sl.delete(engine, table, {'package_name': package_name})
-        sl.delete(engine, 'issue', {'package_name': package_name})
+        sl.delete(engine, table, package_name=package_name)
+        sl.delete(engine, 'issue', package_name=package_name)
         stats.add('Removed obsolete dataset', package_name)
     print 'Datasets build_index summary:'
     print stats.report()

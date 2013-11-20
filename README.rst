@@ -112,6 +112,8 @@ To limit the analysis to one publisher, specify the name as a parameter to build
 
   python build_index.py wales-office
 
+All the later steps can be confined to a particular publisher, dataset or resource using options. Use '--help' on each command for more details.
+
 And finally, if you want to dump the resulting spend database to spending.csv and load it into OpenSpending then you can do::
 
   python dump.py

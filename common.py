@@ -77,13 +77,15 @@ def nk_connect(dataset):
                 api_key='beaf2ff2-ea94-47c0-942f-1613a09056c2')
     return NK_DATASETS[dataset]
 
-def parse_args():
+def parse_args(allow_row=False):
     filter_ = {}
     usage = "usage: %prog [options]"
     parser = OptionParser(usage=usage)
     parser.add_option("-f", "--force",
                       action="store_true", dest="force", default=False,
                       help="Don't skip previously processed records")
+    if allow_row:
+        parser.add_option("--row", type="int", dest="row")
     parser.add_option("-r", "--resource_id", dest="resource_id")
     parser.add_option("-d", "--dataset_name", dest="dataset_name")
     parser.add_option("-i", "--dataset_id", dest="dataset_id")

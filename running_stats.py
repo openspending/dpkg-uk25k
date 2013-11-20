@@ -92,12 +92,21 @@ class StatsList(StatsCount):
         return (value_str, number_of_values)
 
 class OpenSpendingStats(StatsList):
-    def add_source(self, category, row):
+    def add_source(self, category, row, value='notspecified'):
         id = '%s %s %s' % (row['package_name'], row['resource_id'], row['url'])
+        if value != 'notspecified':
+            id += ' %r' % value
         return self.add(category, value=id)
 
-    def add_spending(self, category, row):
-        id = '%s Sheet=%s Row=%s' % (row['resource_id'], row['sheet_id'], row['row_id'])
+    def add_spending(self, category, row, value='notspecified'):
+        id = row['resource_id']
+        if row['sheet_id']:
+            id += ' Sheet=%s' % row['sheet_id']
+        if 'row_number' in row:
+            id += ' Row=%s' % row['row_number']
+        id += ' RowID=%s' % row['row_id']
+        if value != 'notspecified':
+            id += ' %r' % value
         return self.add(category, value=id)
 
 if __name__ == '__main__':

@@ -7,6 +7,7 @@ import chardet
 import codecs
 import re
 from collections import defaultdict
+from types import NoneType
 
 from messytables import *
 import sqlaload as sl
@@ -25,7 +26,9 @@ def keyify(key):
     return key
 
 def convert_(value):
-    if not isinstance(value, basestring):
+    if isinstance(value, NoneType):
+        pass
+    elif not isinstance(value, basestring):
         value = unicode(value)
     elif isinstance(value, str):
         try:
@@ -100,11 +103,19 @@ def extract_resource_core(engine, row, stats):
             sl.drop_table(connection, raw_table_name)
             raw_table = sl.get_table(connection, raw_table_name)
 
+            # with one header row, offset=0 and we want row_number=1 so that
+            # the first data row is row_number=2, matching the row number as
+            # seen in Excel
+            row_number = offset + 1
             for row_ in row_set:
                 cells = dict([(keyify(c.column), convert_(c.value)) for c in row_ if \
                     len(c.column.strip())])
+                row_number += 1
+                if is_row_blank(cells):
+                    continue
                 for cell, value in cells.items():
                     values[cell][value] += 1
+                cells['row_number'] = row_number
                 sl.add_row(connection, raw_table, cells)
 
         trans.commit()
@@ -121,6 +132,12 @@ def extract_resource_core(engine, row, stats):
         connection.close()
         fh.close()
 
+def is_row_blank(cells):
+    for cell in cells.values():
+        if cell and unicode(cell).strip():
+            return False
+    return True
+
 def extract_resource(engine, source_table, row, force, stats):
     if not row['retrieve_status']:
         stats.add_source('Previous step (retrieve) not complete', row)
@@ -135,7 +152,7 @@ def extract_resource(engine, source_table, row, force, stats):
         stats.add_source('Already extracted', row)
         return
 
-    log.info("Extracting: %s, File %s", row['package_name'], row['resource_id'])
+    log.info("Extract: /dataset/%s/resource/%s", row['package_name'], row['resource_id'])
     clear_issues(engine, row['resource_id'], STAGE)
 
     status, sheets = extract_resource_core(engine, row, stats)

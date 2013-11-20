@@ -67,6 +67,8 @@ def column_mapping(engine, row, columns):
     '''
     nkc = nk_connect('uk25k-column-names')
     columns.remove('id')
+    if 'row_number' in columns:
+        columns.remove('row_number')
     sheet_signature = '|'.join(sorted(set(map(normalize, columns))))
     mapping = {}
     failed_columns = []
@@ -179,7 +181,7 @@ def combine_resource(engine, source_table, row, force, stats):
         stats.add_source('Already combined', row)
         return
 
-    log.info("Combine: %s, Resource %s", row['package_name'], row['resource_id'])
+    log.info("Combine: /dataset/%s/resource/%s", row['package_name'], row['resource_id'])
     clear_issues(engine, row['resource_id'], STAGE)
 
     status = combine_resource_core(engine, row, stats)

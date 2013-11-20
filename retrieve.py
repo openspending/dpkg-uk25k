@@ -43,6 +43,7 @@ def retrieve(row, engine, source_table, force, stats):
             return
         else:
             # need to fetch the file
+            log.info("Retrieve: /dataset/%s/resource/%s", row['package_name'], row['resource_id'])
             clear_issues(engine, row['resource_id'], STAGE)
             url = row['url']
             fixed_url = fix_url(url)

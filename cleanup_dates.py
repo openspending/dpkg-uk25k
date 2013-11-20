@@ -10,7 +10,7 @@ FORMATS = [
     # Variations on sensible date formats
     '%Y-%m-%d', '%Y-%m-%d %H:%M:%S.%f', '%Y-%m-%d %H:%M:%S',
     # Less sensible date formats
-    '%d/%m/%Y', '%d/%m/%Y %H:%M', '%m/%d/%Y', '%d/%m/%y', '%d.%m.%y', '%d.%m.%Y',
+    '%d/%m/%Y', '%d/%m/%Y %H:%M', '%m/%d/%Y %H:%M', '%m/%d/%Y', '%d/%m/%y', '%d.%m.%y', '%d.%m.%Y',
     # Ridiculous ones
     '%m/%d/%y', '%Y%m%d',
     # Things with words in
@@ -19,9 +19,8 @@ FORMATS = [
     'excel']
 
 def detect_format(values):
-    '''Given a list of dates, return the date format string that matches them best.'''
-    # TODO: alternative solution - some sheets use more than one date format, 
-    # could pass a priorized list and attempt each?
+    '''Given a list of dates, return the date format strings that matches them best,
+    with the best matching one first.'''
     if not len(values):
         return None
     values_ = defaultdict(int)
@@ -41,47 +40,79 @@ def detect_format(values):
                     datetime.strptime(value.strip(), format_)
                 scores[format_] += weight
             except: pass
-    scores = sorted(scores.items(), key=lambda (f,n): n)
-    #print scores
+    # Sort highest weighted/scoring formats first
+    scores = sorted(scores.items(), key=lambda (format_, weight): -weight)
     if not len(scores):
         log.debug("Date Values: %r", set(values))
-        return None
-    return scores[-1][0]
+        return 'Could not understand the date format e.g. "%s"' % value
+    # Filter out formats with less than 25% of the highest score - assume these
+    # are false positives
+    max_weight = scores[0][1]
+    weight_threshold = int(float(max_weight) * 0.25)
+    if weight_threshold < 1:
+        weight_threshold = 1
+    formats = [score[0] for score in scores if score[1] > weight_threshold]
+    #print scores
+    return formats
 
 def detect_formats(data):
-    formats = {}
+    '''Given data (list of rows), it returns a dict of each Date field/column
+    with a list of formats.  If there is an error detecting for a column, the value in
+    the dict will be the error string.
+    '''
+    if not data:
+        log.warning('Table has no rows')
+        return dict(zip(DATE_FIELDS, ['Table has no rows']*len(DATE_FIELDS)))
+    field_formats = {}
     for field in DATE_FIELDS:
         values = [r.get(field) for r in data]
         values = [v.strip() for v in values if v]
-        formats[field] = detect_format(values)
-    return formats
+        if not values:
+            log.warning('Date column "%s" has no values', field)
+            field_formats[field] = 'Date column has no values'
+            continue
+        field_formats[field] = detect_format(values)
+    return field_formats
 
-def apply(row, formats, stats):
+def apply(row, field_formats, stats):
     today = datetime.now()
-    for field, format_ in formats.items():
+    for field, formats in field_formats.items():
         try:
             value = row.get(field)
-            if value is None:
+            if value in (None, ''):
                 stats[field].add_spending('Empty', row)
                 continue
-            if format_ == 'excel':
-                # Deciphers excel dates that have been mangled into integers by
-                # formatting errors
-                parsed = datetime(*xldate_as_tuple(float(field.strip()), 0))
-            else:
-                parsed = datetime.strptime(value.strip(), format_)
+            parsed = None
+            # Try parsing
+            for format_ in formats:
+                try:
+                    if format_ == 'excel':
+                        # Deciphers excel dates that have been mangled into integers by
+                        # formatting errors
+                        parsed = datetime(*xldate_as_tuple(float(field.strip()), 0))
+                    else:
+                        parsed = datetime.strptime(value.strip(), format_)
+                    break
+                except Exception, e:
+                    pass
+            if not parsed:
+                row[field + 'Formatted'] = None
+                row['valid'] = False
+                stats[field].add_spending('Parse error', row, value)
+                continue
             # Check it is not in the future - an obvious mistake
             if parsed > today:
                 row[field + 'Formatted'] = None
                 row['valid'] = False
-                stats[field].add_spending('Date in the future', row)
+                stats[field].add_spending('Date in the future', row, parsed)
                 continue
-            stats[field].add_spending('Parsed ok', row)
-            row[field + 'Formatted'] = parsed.strftime("%Y-%m-%d")
+            formatted_date = parsed.strftime("%Y-%m-%d")
+            stats[field].add_spending('Parsed ok', row, value)
+            row[field + 'Formatted'] = formatted_date
         except Exception as e:
             row[field + 'Formatted'] = None
             row['valid'] = False
             stats[field].add_spending('Exception %s' % e.__class__.__name__, row)
-            #log.exception(e)
+            log.exception(e)
     return row
 

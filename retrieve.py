@@ -62,7 +62,7 @@ def fix_url(url):
             url.lower().startswith('https://')):
         url = 'http://' + url
     if url not in fixed_urls:
-        append(url)
+        fixed_urls.append(url)
 
     return fixed_urls[1:] # don't include the original url
 

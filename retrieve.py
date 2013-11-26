@@ -86,12 +86,11 @@ def get_url(url):
     except httplib.HTTPException, e:
         # reading the HTTP body can throw httplib.IncompleteRead
         content_or_error = e.__class__.__name__
+    except requests.packages.urllib3.exceptions.LocationParseError, e:
+        content_or_error = 'Location parse error %r' % e.args
     except Exception, e:
-        # Includes:
-        # * httplib.IncompleteRead
-        # * requests.packages.urllib3.exceptions.LocationParseError
         log.exception(e)
-        content_or_error = 'Exception occurred', unicode(e)
+        content_or_error = 'Exception occurred %r' % e
     return success, content_or_error
 
 def retrieve(row, engine, source_table, force, stats):

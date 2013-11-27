@@ -76,12 +76,14 @@ def extract_resource_core(engine, row, stats):
 
             encoding = None
             detected = chardet.detect(source_data[:200])
+            log.debug('Encoding detected as: %s', detected.get('encoding'))
             if detected.get('encoding') == 'ISO-8859-2' and '\xa3' in source_data:
                 # Detected as Latin2 but probably isn't - that is for Eastern
                 # European languages.  Probably because the presence of a GBP
                 # pound sign has foxed chardet. It is pretty certain that it is
                 # a single-byte ASCII-variant, and my money is on Windows-1252
                 encoding = 'windows-1252'
+                log.debug('Probably not ISO-8859-2 because it has GBP symbol, so assuming it is Windows-1252')
 
             table_set = CSVTableSet(sio, encoding=encoding)
 

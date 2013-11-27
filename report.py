@@ -255,13 +255,30 @@ def create_report(dest_dir, publisher_filter):
     resource_report(engine, dest_dir, publisher_filter)
 
 if __name__ == '__main__':
-    usage = 'Usage: python %s <report-path> [<publisher-name>,<publisher-name>,...]' % sys.argv[0]
-    if len(sys.argv) == 3:
-        publisher_filter = sys.argv[2].split(',')
-    elif len(sys.argv) == 2:
-        publisher_filter = None
-    else:
-        print usage
+    usage = "usage: %prog [options]"
+    parser = OptionParser(usage=usage)
+    parser.add_option("-p", "--publisher_name", dest="publisher_name",
+            help="Publisher name (or multiple ones comma-separated)")
+    parser.add_option("-o", "--output_dir", dest="output_dir",
+            help="Directory to write the reports to (defaults to config "
+            "option: report.output.dir)")
+    (options, args) = parser.parse_args()
+    if args:
+        print 'Error: there should be no args, just options'
+        parser.print_help()
         sys.exit(1)
-    report_path = sys.argv[1]
-    create_report(report_path, publisher_filter)
+    if options.publisher_name:
+        publisher_filter = options.publisher_name.split(',')
+    else:
+        publisher_filter = None
+    try:
+        output_dir = config_get('report.output.dir')
+    except ConfigParser.NoOptionError:
+        output_dir = None
+    if not output_dir:
+        output_dir = options.output_dir
+    if not output_dir:
+        print 'Error: need to specify an output directory'
+        sys.exit(1)
+    log.info('Report output dir: %s' % output_dir)
+    create_report(output_dir, publisher_filter)

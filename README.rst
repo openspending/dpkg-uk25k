@@ -16,7 +16,7 @@ The scripts have several stages that need to be run in order:
 * ``extract`` will attempt to parse CSV/XLS/... and load it into a DB
 * ``combine`` column names are mapped and values are stored in one central table
 * ``cleanup`` parses dates and amounts. Reconciles entity names with Nomenklatura.
-* ``validate``
+* ``validate`` discards any transactions that don't have a parsed date and amount
 * ``report`` creates the report HTML
 * ``dump`` dumps all the database to spending.csv
 * ``transfer`` transfers spending.csv to an OpenSpending website
@@ -29,16 +29,6 @@ First clone this repo::
 
   git clone https://github.com/okfn/dpkg-uk25k.git
 
-Now before you install postgresql, ensure that the locale mentions UTF8::
-
-  locale
-
-If it is just "en_US" then you need to change it::
-
-  sudo update-locale LANG=en_US.UTF-8
-
-Now reboot to see the locale as including UTF-8. Any issues, see: http://stackoverflow.com/questions/8394789/postgresql-9-1-installation-and-database-encoding#answer-8405325
-
 On Ubuntu you need to install a number of packages::
 
   sudo apt-get install python-dev postgresql libpq-dev libxml2-dev libxslt1-dev
@@ -48,21 +38,15 @@ You need to install the dependencies (best in a python virtual environment)::
   virtualenv pyenv-dpkg-uk25k
   pyenv-dpkg-uk25k/bin/pip install -r dpkg-uk25k/requirements.txt
 
-Note: If you encounter ``Error: pg_config executable not found.`` when installing psycopg2, on Ubuntu/Debian you can solve it with::
+Note: If you encounter ``Error: pg_config executable not found.`` when installing psycopg2 or compile errors for lxml ``xslt-config: not found``, it means that some of the packages were not successfully installed on the previous step.
 
-  sudo apt-get install libpq-dev python-dev
-
-Note: If you encounter compile errors for lxml ``xslt-config: not found``, on Ubuntu you can solve it with::
-
-  sudo apt-get install libxml2-dev libxslt1-dev
-
-The default configuration is in ``default.ini``. If you want to change the configuration, copy it ``config.ini`` and edit it there. To do the transfer stage, then an openspending.apikey needs to be specified.
+The default configuration is in ``default.ini``. If you want to change the configuration, copy it ``config.ini`` and edit it there. To save specifying the report directory when you run report.py, add it to the config. To do the transfer stage, then an openspending.apikey needs to be specified.
 
 Now create a postgres user for your unix user name::
 
   sudo -u postgres createuser -D -R -S $USER
 
-Now check your postgres cluster is configured as UTF8. 
+Now check your postgres cluster is configured as UTF8 - it needs to be.
 
   psql -l
 
@@ -70,6 +54,8 @@ You should see UTF8 in the Encoding column. If it is something else then you sho
 
   sudo -u postgres pg_dropcluster --stop 9.1 main
   sudo -u postgres pg_createcluster --start 9.1 main --locale=en_US.UTF-8
+
+If you have any issues with making the database UTF8, see: http://stackoverflow.com/questions/8394789/postgresql-9-1-installation-and-database-encoding#answer-8405325
 
 Before you can run the scripts you need to prepare a database::
 
@@ -97,11 +83,11 @@ Run the ETL scripts like this::
   python combine.py
   python cleanup.py
   python validate.py
-  python report.py reports
+  python report.py
 
 Or do the whole lot together::
 
-  python build_index.py && python retrieve.py && python extract.py && python combine.py && python cleanup.py && python validate.py && python report.py reports
+  python build_index.py && python retrieve.py && python extract.py && python combine.py && python cleanup.py && python validate.py && python report.py
 
 When running the scripts multiple times, previously successful resources will not be processed again. Use --force to ensure they are. If you want to start completely from fresh, you can delete and recreate all tables like this::
 

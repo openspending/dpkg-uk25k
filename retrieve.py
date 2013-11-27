@@ -117,12 +117,19 @@ def retrieve(row, engine, source_table, force, stats):
             if success:
                 break
     if success:
+        stats.add_source('Downloaded', row)
+    elif os.path.exists(source_path(row)):
+        stats.add_source('Could not download but it was in the cache', row)
+        with open(source_path(row), 'rb') as fh:
+            content_or_error = fh.read()
+        success = True
+
+    if success:
         data = content_or_error
         content_id = calculate_hash(data)
         fh = open(source_path(row), 'wb')
         fh.write(data)
         fh.close()
-        stats.add_source('Downloaded', row)
     else:
         stats.add_source(original_error, row)
         issue(engine, row['resource_id'], None, STAGE,

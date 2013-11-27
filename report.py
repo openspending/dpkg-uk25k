@@ -67,8 +67,10 @@ def write_report(dest_dir, template, name, **kw):
     template = env.get_template(template)
     report_ts = datetime.datetime.utcnow().strftime("%B %d, %Y")
     report = template.render(report_ts=report_ts, **kw)
-    with open(os.path.join(dest_dir, name + '.html'), 'wb') as fh:
+    filepath = os.path.join(dest_dir, name + '.html')
+    with open(filepath, 'wb') as fh:
         fh.write(report.encode('utf-8'))
+    return filepath
 
 def all_groups():
     client = ckan_client()
@@ -124,7 +126,8 @@ def group_data(engine, publisher_filter):
         #if i > 20:
         #    break
 
-def group_report(engine, dest_dir, publisher_filter):
+def publisher_report(engine, dest_dir, publisher_filter):
+    '''Creates a report of all the publishers and their overall spending results'''
     _all_groups = list(group_data(engine, publisher_filter))
     groups_by_name = dict([(g['name'], g) for g in _all_groups])
     by_names = dict([(g['name'], g['title']) for g in _all_groups])
@@ -192,13 +195,13 @@ def group_report(engine, dest_dir, publisher_filter):
 #        'cover_1y': len(within_c(valids, weeks=52)),
         }
     pprint(stats)
-    write_report(dest_dir, 'publishers.html',
+    filepath = write_report(dest_dir, 'publishers.html',
             'index', req_groups=req_groups,
             all_groups=_all_groups,
             by_names=by_names,
             nonreq_groups=nonreq_groups,
             stats=stats)
-    log.info('Wrote report for groups')
+    log.info('Wrote publisher report: %s', filepath)
 
 def resource_query(engine):
     data = {}
@@ -233,6 +236,9 @@ def resource_query(engine):
     return data
 
 def resource_report(engine, dest_dir, publisher_filter=None):
+    '''For each publisher it creates a report of each of its resources and how
+    they fared in the ETL.
+    '''
     data = resource_query(engine)
     publisher_names = publisher_filter or data
     for publisher_name in publisher_names:
@@ -240,19 +246,26 @@ def resource_report(engine, dest_dir, publisher_filter=None):
             log.info('No data for publisher: %s', publisher_name)
             continue
         resources = data[publisher_name]
-        write_report(dest_dir, 'resources.html',
+        filepath = write_report(dest_dir, 'resources.html',
             'publisher-' + publisher_name,
             resources=resources,
             publisher_name=publisher_name,
             publisher_title=resources[0].get('publisher_title'))
-        log.info('Wrote report for publisher: %s', publisher_name)
+        log.info('Wrote resource report for %s: %s', publisher_name, filepath)
 
-def create_report(dest_dir, publisher_filter):
+def create_report(dest_dir, publisher_filter, report_name):
     if not os.path.isdir(dest_dir):
         os.makedirs(dest_dir)
     engine = db_connect()
-    group_report(engine, dest_dir, publisher_filter)
-    resource_report(engine, dest_dir, publisher_filter)
+    if report_name == 'all':
+        publisher_report(engine, dest_dir, publisher_filter)
+        resource_report(engine, dest_dir, publisher_filter)
+    elif report_name == 'publisher':
+        publisher_report(engine, dest_dir, publisher_filter)
+    elif report_name == 'resource':
+        resource_report(engine, dest_dir, publisher_filter)
+
+REPORT_NAMES = ('publisher', 'resource')
 
 if __name__ == '__main__':
     usage = "usage: %prog [options]"
@@ -262,11 +275,11 @@ if __name__ == '__main__':
     parser.add_option("-o", "--output_dir", dest="output_dir",
             help="Directory to write the reports to (defaults to config "
             "option: report.output.dir)")
+    parser.add_option("--report", dest="report", default="all",
+            help='Report, chosen from: all %s' % ' '.join(REPORT_NAMES))
     (options, args) = parser.parse_args()
     if args:
-        print 'Error: there should be no args, just options'
-        parser.print_help()
-        sys.exit(1)
+        parser.error('there should be no args, just options')
     if options.publisher_name:
         publisher_filter = options.publisher_name.split(',')
     else:
@@ -278,7 +291,8 @@ if __name__ == '__main__':
     if not output_dir:
         output_dir = options.output_dir
     if not output_dir:
-        print 'Error: need to specify an output directory'
-        sys.exit(1)
+        parser.error('need to specify an output directory')
+    if options.report is not 'all' and options.report not in REPORT_NAMES:
+        parser.error('report name must be "all" or one of: %r' % REPORT_NAMES)
     log.info('Report output dir: %s' % output_dir)
-    create_report(output_dir, publisher_filter)
+    create_report(output_dir, publisher_filter, options.report)

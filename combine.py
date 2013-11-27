@@ -160,6 +160,7 @@ def combine_resource_core(engine, row, stats):
             error = 'Column mappings not complete'
             log.warn('Column mappings not complete: %s', columns)
             continue
+        log.debug('Column mapping: %r', mapping)
         if not combine_sheet(engine, row, sheet_id, table, mapping):
             error = 'Could not combine sheet'
     if error:

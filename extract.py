@@ -68,7 +68,7 @@ def extract_resource_core(engine, row, stats):
             fh.seek(0)
             table_set = XLSTableSet(fh)
         elif source_data.startswith('PK'):
-            table_set = XLSXTableSet(source_path(row))
+            table_set = XLSXTableSet(filename=source_path(row))
         else:
             #fh.seek(0)
             from StringIO import StringIO

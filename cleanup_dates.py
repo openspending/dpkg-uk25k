@@ -10,7 +10,7 @@ FORMATS = [
     # Variations on sensible date formats
     '%Y-%m-%d', '%Y-%m-%d %H:%M:%S.%f', '%Y-%m-%d %H:%M:%S',
     # Less sensible date formats
-    '%d/%m/%Y', '%d/%m/%Y %H:%M', '%m/%d/%Y %H:%M', '%m/%d/%Y', '%d/%m/%y', '%d.%m.%y', '%d.%m.%Y',
+    '%d/%m/%Y', '%d/%m/%Y %H:%M', '%m/%d/%Y %H:%M', '%m/%d/%Y', '%d/%m/%y', '%d.%m.%y', '%d.%m.%Y', '%d-%m-%Y',
     # Ridiculous ones
     '%m/%d/%y', '%Y%m%d',
     # Things with words in

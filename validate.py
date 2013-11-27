@@ -44,7 +44,7 @@ def validate_sheet(engine, row, sheet_id, data_row_filter, stats_spending):
                 result['valid'] = False
                 if not issue_noted_for_this_resource:
                     issue(engine, row['resource_id'], row['retrieve_hash'], STAGE,
-                          'Date invalid (or possible the date format is inconsistent)',
+                          'Date invalid (blank, inconsistent or unrecognised format)',
                           {'row_id': row_.get('row_id'),
                            'row_number': row_.get('row_number'),
                            'Date': row_.get('Date')})

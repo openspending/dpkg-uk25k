@@ -51,7 +51,7 @@ def detect_format(values):
     weight_threshold = int(float(max_weight) * 0.25)
     if weight_threshold < 1:
         weight_threshold = 1
-    formats = [score[0] for score in scores if score[1] > weight_threshold]
+    formats = [score[0] for score in scores if score[1] >= weight_threshold]
     #print scores
     return formats
 

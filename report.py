@@ -72,18 +72,22 @@ def write_report(dest_dir, template, name, **kw):
         fh.write(report.encode('utf-8'))
     return filepath
 
-def all_groups():
+def all_orgs():
     client = ckan_client()
-    for group_name in client.group_register_get():
-        yield get_group(group_name)
+    for org_name in client.action('organization_list'):
+        yield get_org(org_name)
 
-def get_group(group_name):
+def get_org(org_name):
     client = ckan_client()
-    group = client.group_entity_get(group_name)
-    group['spending_published_by'] = group.get('extras').get('spending_published_by')
-    group['category'] = group.get('extras').get('category')
-    group['must_report'] = group['category'] in ['core-department']
-    return group
+    org = client.action('organization_show', id=org_name, include_datasets=False)
+    def get_extra_value(org, key):
+        for extra in org.get('extras'):
+            if extra['key'] == key:
+                return extra['value']
+    org['spending_published_by'] = get_extra_value(org, 'spending_published_by')
+    org['category'] = get_extra_value(org, 'category')
+    org['must_report'] = org.get('category') in ['core-department']
+    return org
 
 def group_query(engine):
     stats = {}
@@ -116,9 +120,9 @@ def group_data(engine, publisher_filter):
     stats for it and yields it.'''
     stats = group_query(engine)
     if publisher_filter:
-        groups = [get_group(group_str) for group_str in publisher_filter]
+        groups = [get_org(group_str) for group_str in publisher_filter]
     else:
-        groups = all_groups()
+        groups = all_orgs()
     for i, group in enumerate(groups):
         group.update(stats.get(group.get('name'), {}))
         print group['name']
@@ -293,6 +297,6 @@ if __name__ == '__main__':
     if not output_dir:
         parser.error('need to specify an output directory')
     if options.report is not 'all' and options.report not in REPORT_NAMES:
-        parser.error('report name must be "all" or one of: %r' % REPORT_NAMES)
+        parser.error('report name must be "all" or one of: %r' % [REPORT_NAMES])
     log.info('Report output dir: %s' % output_dir)
     create_report(output_dir, publisher_filter, options.report)

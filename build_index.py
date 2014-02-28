@@ -112,6 +112,15 @@ def build_index(publisher_name=None):
         sl.delete(engine, table, package_name=package_name)
         sl.delete(engine, 'issue', package_name=package_name)
         stats.add('Removed obsolete dataset', package_name)
+    # Removed stray rows without package_name
+    stray_rows = list(sl.find(engine, table, package_name=None))
+    if stray_rows:
+        log.info('Stray rows without package_name: %i',
+                 len(stray_rows))
+        sl.delete(engine, table, package_name=None)
+        sl.delete(engine, 'issue', package_name=None)
+        for row in stray_rows:
+            stats.add('Stray row removed', row['resource_id'])
     print 'Datasets build_index summary:'
     print stats.report()
     print 'Resources build_index summary:'

@@ -106,6 +106,14 @@ And finally, if you want to dump the resulting spend database to spending.csv an
   python transfer.py
 
 
+Optimising
+----------
+
+When the spending table gets big (10 millions rows seen 2/2014) then queries in cleanup.py and validate.py get very slow unless you create an index:
+
+CREATE INDEX spending_resource_id_index ON spending (resource_id);
+
+
 Punted
 ------
 

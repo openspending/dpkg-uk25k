@@ -92,8 +92,9 @@ def build_index(publisher_name=None):
              for res in sl.distinct(engine, table, 'package_name', **publisher_dict_filter)])
     log.info('Existing datasets: %i', len(existing_packages))
     processed_packages = set()
+    log.info('Doing package search for: "%s"', q)
     res = client.package_search(q,
-            search_options={'limit': 5})
+            search_options={'limit': 2000})
     log.info('Search returned %i dataset results', res['count'])
     stats = OpenSpendingStats()
     stats_resources = OpenSpendingStats()

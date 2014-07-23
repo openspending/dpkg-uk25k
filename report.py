@@ -86,7 +86,7 @@ def get_org(org_name):
                 return extra['value']
     org['spending_published_by'] = get_extra_value(org, 'spending_published_by')
     org['category'] = get_extra_value(org, 'category')
-    org['must_report'] = org.get('category') in ['core-department']
+    org['must_report'] = org.get('category') in ['core-department', 'ministerial-department']
     return org
 
 def group_query(engine):

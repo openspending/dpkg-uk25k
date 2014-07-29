@@ -72,22 +72,88 @@ def write_report(dest_dir, template, name, **kw):
         fh.write(report.encode('utf-8'))
     return filepath
 
-def all_orgs():
+_organizations = None
+
+def fetch_orgs():
+    global _organizations
     client = ckan_client()
-    for org_name in client.action('organization_list'):
-        yield get_org(org_name)
+    log.info('Fetching organizations...')
+    org_list = client.action('organization_list', all_fields=True,
+                             include_datasets=False, include_groups=True,
+                             include_extras=True)
+    log.info('...done')
+    _organizations = dict((org['name'], org) for org in org_list)
+
+def get_all_orgs():
+    orgs = [get_org(org_name) for org_name in _organizations]
+    orgs = [org for org in orgs if org is not None]
+    return sorted(orgs, key=lambda o: o['title'])
 
 def get_org(org_name):
-    client = ckan_client()
-    org = client.action('organization_show', id=org_name, include_datasets=False)
+    org = _organizations[org_name]
     def get_extra_value(org, key):
         for extra in org.get('extras'):
             if extra['key'] == key:
                 return extra['value']
     org['spending_published_by'] = get_extra_value(org, 'spending_published_by')
-    org['category'] = get_extra_value(org, 'category')
-    org['must_report'] = org.get('category') in ['core-department', 'ministerial-department']
+
+    # Determine section of the report - a flattened version of the tree & category
+    category = get_extra_value(org, 'category')
+    if category in ('grouping', 'sub-organisation', 'devolved'):
+        # These are not bodies, so no spend data
+        return None
+    if category in ('private', 'gov-corporation', 'charity-ngo'):
+        # Pretty sure these should not have spend data
+        return None
+    def get_top_level_group(group):
+        parent_group = group.get('group')
+        if parent_group:
+            return get_top_level_group(group)
+        return group['name']
+    top_level_group = get_top_level_group(org)
+    is_top_level_group = top_level_group == org['name']
+    if category == 'ministerial-department' and is_top_level_group:
+        section = 'Ministerial department'
+    elif category == 'non-ministerial-department':
+        section = 'Non-ministerial department'
+    elif top_level_group == 'northern-ireland-executive':
+        section = 'Northern Ireland Executive'
+    elif top_level_group == 'welsh-government':
+        section = 'Welsh Government'
+    elif top_level_group == 'Scottish Government':
+        section = 'Scottish Government'
+    elif category in ['ministerial-department', 'non-ministerial-department']:
+        section = 'Other department'
+    else:
+        # pasted in from ckanext-dgu validators.py
+        section = dict((
+              ('executive-ndpb', 'Executive non-departmental public body'),
+              ('advisory-ndpb', 'Advisory non-departmental public body'),
+              ('tribunal-ndpb', 'Tribunal non-departmental public body'),
+              ('executive-agency', 'Executive agency'),
+              ('executive-office', 'Executive office'),
+              ('local-council', 'Local authority'),
+              ('nhs', 'NHS body'),
+              # other: enquiries, public-private-partnerships
+              ('other', 'Other'),
+             )).get(category, 'Other')
+    org['section'] = section
+
     return org
+
+sections_required_to_report = ['Ministerial department', 'Non-ministerial department']
+section_order = ['Ministerial department', 'Non-ministerial department',
+        'Northern Ireland Executive', 'Welsh Government', 'Scottish Government',
+        'Other department',
+        'Executive non-departmental public body',
+        'Advisory non-departmental public body',
+        'Tribunal non-departmental public body',
+        'Executive agency',
+        'Executive office',
+        'Local authority',
+        'NHS body',
+        'Other',
+        ]
 
 def group_query(engine):
     stats = {}
@@ -119,13 +185,13 @@ def group_data(engine, publisher_filter):
     '''Gets each group from CKAN as a dictionary, adds in the
     stats for it and yields it.'''
     stats = group_query(engine)
+    fetch_orgs()
     if publisher_filter:
         groups = [get_org(group_str) for group_str in publisher_filter]
     else:
-        groups = all_orgs()
+        groups = get_all_orgs()
     for i, group in enumerate(groups):
         group.update(stats.get(group.get('name'), {}))
-        print group['name']
         yield group
         #if i > 20:
         #    break
@@ -147,12 +213,20 @@ def publisher_report(engine, dest_dir, publisher_filter):
             if property in publishing_group:
                 group[property] = publishing_group[property]
 
-    req_groups = filter(lambda g: g['must_report'], _all_groups)
-    nonreq_groups = filter(lambda g: not g['must_report'], _all_groups)
-    num = len(req_groups)
-    #shows = filter(lambda g: g.get('num_sources', 0) > 0, req_groups)
+    req_groups = filter(lambda g: g['section'] in sections_required_to_report, _all_groups)
     valids = filter(lambda g: g.get('num_entries', 0) > 0, req_groups)
     top_class_groups = filter(lambda g: g.get('top_class'), req_groups)
+
+    groups_by_section_unordered = {}
+    for group in _all_groups:
+        if group['section'] not in groups_by_section_unordered:
+            groups_by_section_unordered[group['section']] = []
+        groups_by_section_unordered[group['section']].append(group)
+    sections_missed_off_the_section_order = list(set(groups_by_section_unordered.keys()) - set(section_order))
+    groups_by_section = []
+    for section in section_order + sections_missed_off_the_section_order:
+        if section in groups_by_section_unordered:
+            groups_by_section.append((section, groups_by_section_unordered[section]))
 
     def within(groups, field, format_, **kw):
         '''Returns groups filtered by whether it has an entry with a field value recent enough.'''
@@ -183,27 +257,16 @@ def publisher_report(engine, dest_dir, publisher_filter):
     stats = {
         'num': len(req_groups),
         'numf': float(len(req_groups)),
-#        'reported_ever': len(shows),
-#        'reported_3m': len(within_m(shows, weeks=12)),
-#        'reported_6m': len(within_m(shows, weeks=26)),
-#        'reported_1y': len(within_m(shows, weeks=52)),
-#        'valid_ever': len(valids),
-#        'valid_3m': len(within_m(valids, weeks=12)),
-#        'valid_6m': len(within_m(valids, weeks=26)),
-#        'valid_1y': len(within_m(valids, weeks=52)),
         'cover_ever': len(valids),
         'cover_2m': len(top_class_groups),
-#        'cover_2m': len(within_c(valids, days=62)),
-#        'cover_3m': len(within_c(valids, weeks=12)),
-#        'cover_6m': len(within_c(valids, weeks=26)),
-#        'cover_1y': len(within_c(valids, weeks=52)),
         }
     pprint(stats)
     filepath = write_report(dest_dir, 'publishers.html',
-            'index', req_groups=req_groups,
+            'index',
+            groups_by_section=groups_by_section,
+            sections_required_to_report=sections_required_to_report,
             all_groups=_all_groups,
             by_names=by_names,
-            nonreq_groups=nonreq_groups,
             stats=stats)
     log.info('Wrote publisher report: %s', filepath)
 

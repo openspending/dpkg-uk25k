@@ -119,8 +119,9 @@ layout: gb
   </div>
 </div>
 
-  {{ render_groups(req_groups, 'Core departments (required to report monthly expenditure)', 'required') }}
-  {{ render_groups(nonreq_groups, 'Other data.gov.uk publishers', 'voluntary') }}
+{% for section, groups in groups_by_section %}
+  {{ render_groups(groups, section, 'required' if section in sections_required_to_report else 'voluntary') }}
+{% endfor %}
 
   <h3>Notes:</h3>
   <ul>

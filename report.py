@@ -106,9 +106,9 @@ def get_org(org_name):
         # Pretty sure these should not have spend data
         return None
     def get_top_level_group(group):
-        parent_group = group.get('group')
-        if parent_group:
-            return get_top_level_group(group)
+        parent_groups = group.get('groups')
+        if parent_groups:
+            return get_top_level_group(parent_groups[0])
         return group['name']
     top_level_group = get_top_level_group(org)
     is_top_level_group = top_level_group == org['name']

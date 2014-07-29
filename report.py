@@ -118,8 +118,12 @@ def get_org(org_name):
         section = 'Non-ministerial department'
     elif top_level_group == 'northern-ireland-executive':
         section = 'Northern Ireland Executive'
+        # No spend data - not central government
+        return None
     elif top_level_group == 'welsh-government':
         section = 'Welsh Government'
+        # No spend data - not central government
+        return None
     elif top_level_group == 'Scottish Government':
         section = 'Scottish Government'
     elif category in ['ministerial-department', 'non-ministerial-department']:

@@ -4,10 +4,10 @@ layout: gb
 ---
 
 {% macro render_groups(groups, title, extraclass) %}
-<table class="table table-condensed tablesorter {{extraclass}}" id="publishers-table">
-  <h4>
+<h4 class="{{extraclass}}">
     {{title}}
-  </h4>
+</h4>
+<table class="table table-condensed tablesorter {{extraclass}}" id="publishers-table">
   <thead>
     <tr>
       <th>Publisher</th>
